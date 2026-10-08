@@ -10,7 +10,15 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy import text
 
-from app.api import routes_admin, routes_auth, routes_controls, routes_exceptions, routes_inventory, routes_rollouts
+from app.api import (
+    routes_admin,
+    routes_auth,
+    routes_controls,
+    routes_exceptions,
+    routes_inventory,
+    routes_rollouts,
+    routes_workspace,
+)
 from app.api.middleware import RequestGuardMiddleware
 from app.core import db
 from app.core.clock import Clock, build_clock
@@ -94,6 +102,9 @@ def create_app(settings: Settings | None = None, clock: Clock | None = None) -> 
                 "live_deployment": False, "handoff_adapter": settings.handoff_adapter,
                 "pipeline_mode": settings.pipeline_mode}
 
-    for r in (routes_auth, routes_controls, routes_inventory, routes_exceptions, routes_rollouts, routes_admin):
+    # Optional AI provider override (tests/offline demos only; never set from configuration).
+    app.state.workspace_ai_provider = None
+    for r in (routes_auth, routes_controls, routes_inventory, routes_exceptions, routes_rollouts, routes_admin,
+              routes_workspace):
         app.include_router(r.router, prefix="/api/v1")
     return app

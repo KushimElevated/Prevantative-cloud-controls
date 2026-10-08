@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
 from app.auth.principal import Principal
@@ -78,3 +79,24 @@ def record_raw(
     )
     session.add(event)
     return event
+
+
+FILTERABLE = ("object_type", "object_id", "control_id", "correlation_id", "action")
+
+
+def query_events(ctx: RequestContext, filters: dict[str, str | None], *, limit: int, offset: int
+                 ) -> tuple[list[AuditEvent], int]:
+    """Audit events visible to the principal: scoped users see catalogue-level events and events
+    touching their scopes."""
+    q = select(AuditEvent)
+    for col in FILTERABLE:
+        val = filters.get(col)
+        if val:
+            q = q.where(getattr(AuditEvent, col) == val)
+    readable = ctx.principal.readable_scope_ids(ctx.tree)
+    if readable is not None:
+        conds = [AuditEvent.scope_ids == []] + [AuditEvent.scope_ids.contains([s]) for s in sorted(readable)]
+        q = q.where(or_(*conds))
+    total = ctx.session.scalar(select(func.count()).select_from(q.subquery()))
+    rows = list(ctx.session.scalars(q.order_by(AuditEvent.id.desc()).limit(limit).offset(offset)))
+    return rows, total

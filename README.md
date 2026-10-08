@@ -137,6 +137,34 @@ curl -s -H "$H" "$B/audit?control_id=CTL-AZ-SEARCH-PNA" | jq '.items[].action'
 Errors are structured: `{"error": {"code", "message", "details", "correlation_id"}}`. Lists are paginated
 (`limit`, `offset`). Send `X-Correlation-ID` to trace a request through the audit log.
 
+## Optional: AI Control Workspace (A2UI)
+
+An optional second experience next to the unchanged Classic Experience. It answers investigation questions
+by composing an interactive canvas (A2UI v0.9, `@a2ui/react` 0.11.1) from an approved component catalog,
+using the same services, authorization and evidence as Classic. It changes nothing except through the
+existing governed workflows after you confirm. Details: `docs/a2ui-workspace.md`.
+
+- Enable/disable: `ENABLE_A2UI_WORKSPACE=true|false` (on in `.env.example`, off by default in code). When off,
+  the selector and navigation entry are hidden and `/api/v1/workspace/*` returns 404.
+- Open it: header selector **Classic / AI Workspace**, the **AI Control Workspace** nav entry,
+  `http://localhost:3000/workspace`, or *Investigate in AI Workspace* on a Control Detail page. Your choice is
+  saved per user; Classic stays the default.
+- Deterministic mode needs no AI credentials. Try (as **cara**):
+  *What would happen if we prevented public network access for all Azure AI Search services in production?*
+  Before any assessment it reports impact as **unknown** and offers to run the existing assessment (with a
+  confirmation); afterwards the canvas shows the persisted results restricted to production.
+- AI-assisted mode is optional (`WORKSPACE_AI_PROVIDER=anthropic` + `ANTHROPIC_API_KEY`, model
+  `claude-opus-5-5`, refusal fallbacks on by default). The model only reads through authorised tools and
+  proposes which views to show; the canvas data always comes from the platform.
+
+```bash
+B=http://localhost:8000/api/v1
+curl -s -H "$H" $B/features
+curl -s -H "$H" -X POST $B/workspace/investigations -H 'content-type: application/json' \
+  -d '{"question":"What would happen if we prevented public network access for all Azure AI Search services in production?"}' \
+  | jq '{intent: .intent.id, scope: .intent.entities.scope_id, summary: .summary.text, findings: [.findings[] | .kind]}'
+```
+
 ## Documentation
 
 - `docs/architecture.md`: modules, domain model, flows, tradeoffs, integration seams
@@ -144,6 +172,8 @@ Errors are structured: `{"error": {"code", "message", "details", "correlation_id
 - `docs/control-feasibility.md`: provider verification (sources, dates, digests), coverage, unsupported behaviour
 - `docs/handoff-contract.md`: bundle files, determinism, receipt rules
 - `docs/authorization-matrix.md`: roles, scopes, separation of duties, demo users
+- `docs/a2ui-workspace.md`: optional AI Control Workspace (reuse, catalog, tools, modes, drafts, safeguards)
+- `docs/a2ui-catalog.json`: generated A2UI component catalog (props and data contracts)
 - `PROGRESS.md`: what is done, what was verified, next increments
 
 ## Known limitations
@@ -153,7 +183,8 @@ Errors are structured: `{"error": {"code", "message", "details", "correlation_id
   environment), so the AWS implementation is demo-only and cannot reach integration-ready status.
 - Two evaluators only (Azure AI Search public network access; the AWS S3 Block Public Access protection
   template). No general policy interpreter; anything else is `UNSUPPORTED`.
-- No live readers, PR creation, authenticated pipeline callbacks, production SSO, telemetry or AI.
+- No live readers, PR creation, authenticated pipeline callbacks, production SSO or telemetry. AI assistance
+  exists only in the optional workspace and is off unless configured.
 - Local demo identities only; production configuration refuses to start.
 - Audit history is append-only for the application role; it is not proof against a database administrator.
 - Reconciliation is a command with a scheduling seam, not a running scheduler.

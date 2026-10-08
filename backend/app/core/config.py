@@ -39,6 +39,18 @@ class Settings(BaseSettings):
     # Testable clock: ISO-8601 UTC timestamp. Empty means system time.
     app_clock_fixed: str = ""
     log_level: str = "INFO"
+    # Optional A2UI-powered AI Control Workspace: a presentation layer over the existing services.
+    # Off unless explicitly enabled; the Classic Experience never depends on it.
+    enable_a2ui_workspace: bool = False
+    # AI-assisted workspace mode. "none" keeps the workspace deterministic (no model calls). The only
+    # approved provider is "anthropic"; its API key is read by the SDK from ANTHROPIC_API_KEY and is never
+    # stored in settings or logged. Misconfiguration disables AI mode; it never stops the application.
+    workspace_ai_provider: str = "none"
+    workspace_ai_model: str = "claude-opus-5-5"
+    workspace_ai_effort: str = "medium"
+    workspace_ai_max_tool_calls: int = 8
+    workspace_ai_timeout_seconds: float = 60.0
+    workspace_ai_refusal_fallbacks: bool = True
 
     @property
     def cors_origins(self) -> list[str]:

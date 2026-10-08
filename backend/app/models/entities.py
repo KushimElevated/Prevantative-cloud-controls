@@ -25,6 +25,7 @@ from sqlalchemy import (
     String,
     Text,
     UniqueConstraint,
+    text,
 )
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
@@ -52,6 +53,8 @@ class User(Base):
     team: Mapped[str] = mapped_column(String(128))
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = ts()
+    # UI preferences only (e.g. preferred experience). Never used for authorization.
+    preferences: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict, server_default=text("'{}'::jsonb"))
     role_assignments: Mapped[list[RoleAssignment]] = relationship(
         back_populates="user", foreign_keys="RoleAssignment.user_id"
     )

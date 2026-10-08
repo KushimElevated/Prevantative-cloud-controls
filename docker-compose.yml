@@ -9,6 +9,8 @@ x-backend-env: &backend-env
   HANDOFF_ADAPTER: ${HANDOFF_ADAPTER:-local-export}
   PIPELINE_MODE: ${PIPELINE_MODE:-mock}
   ENABLE_LIVE_DEPLOYMENT: ${ENABLE_LIVE_DEPLOYMENT:-false}
+  # Optional AI Control Workspace (off unless enabled in .env).
+  ENABLE_A2UI_WORKSPACE: ${ENABLE_A2UI_WORKSPACE:-false}
   EXPORT_DIR: /data/exports
   APP_DB_ROLE: ${CCP_APP_USER:-ccp_app}
   DATABASE_URL: postgresql+psycopg://${CCP_APP_USER:-ccp_app}:${CCP_APP_PASSWORD}@db:5432/${CCP_DB:-ccp}
@@ -53,7 +55,14 @@ services:
 
   backend:
     build: *backend-build
-    environment: *backend-env
+    environment:
+      <<: *backend-env
+      # AI-assisted workspace mode only; given to the API container alone. Empty = not configured.
+      WORKSPACE_AI_PROVIDER: ${WORKSPACE_AI_PROVIDER:-none}
+      WORKSPACE_AI_MODEL: ${WORKSPACE_AI_MODEL:-claude-opus-5-5}
+      WORKSPACE_AI_EFFORT: ${WORKSPACE_AI_EFFORT:-medium}
+      WORKSPACE_AI_REFUSAL_FALLBACKS: ${WORKSPACE_AI_REFUSAL_FALLBACKS:-true}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
     volumes:
       - exports:/data/exports
     ports:

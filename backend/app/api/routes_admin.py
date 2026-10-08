@@ -27,18 +27,9 @@ def metrics(ctx: RequestContext = Depends(get_ctx)):
 def list_audit(page: Page = Depends(), object_type: str | None = None, object_id: str | None = None,
                control_id: str | None = None, correlation_id: str | None = None, action: str | None = None,
                ctx: RequestContext = Depends(get_ctx)):
-    q = select(m.AuditEvent)
-    for col, val in (("object_type", object_type), ("object_id", object_id), ("control_id", control_id),
-                     ("correlation_id", correlation_id), ("action", action)):
-        if val:
-            q = q.where(getattr(m.AuditEvent, col) == val)
-    readable = ctx.principal.readable_scope_ids(ctx.tree)
-    if readable is not None:
-        # Scoped users see catalogue-level events and events touching their scopes.
-        conds = [m.AuditEvent.scope_ids == []] + [m.AuditEvent.scope_ids.contains([s]) for s in sorted(readable)]
-        q = q.where(or_(*conds))
-    total = ctx.session.scalar(select(func.count()).select_from(q.subquery()))
-    rows = ctx.session.scalars(q.order_by(m.AuditEvent.id.desc()).limit(page.limit).offset(page.offset))
+    rows, total = audit.query_events(ctx, {"object_type": object_type, "object_id": object_id,
+                                           "control_id": control_id, "correlation_id": correlation_id,
+                                           "action": action}, limit=page.limit, offset=page.offset)
     return paged([audit_view(a) for a in rows], total, page)
 
 

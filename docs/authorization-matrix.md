@@ -24,6 +24,22 @@ applies to that scope and its descendants; a role without a scope applies everyw
 | Change governance settings, grant/revoke roles | | | | | | ✓ (never for self) |
 | Retire a control | | | | ✓ | | |
 
+## AI Control Workspace (optional)
+
+The workspace adds no permissions. Every read runs as the caller with the readable-scope rules above, and
+every change calls the same service as the Classic API.
+
+| Capability | Who |
+|---|---|
+| Use the workspace, read investigations | Any authenticated user (results filtered to readable scopes) |
+| Save own experience preference | Any authenticated user (own record only) |
+| Run an impact assessment from the workspace | CONTROL_ENGINEER (existing endpoint, after confirmation) |
+| Prepare drafts | Any authenticated user (unsaved; shows why submission would be refused) |
+| Submit exception draft | EXCEPTION_REQUESTER at the resource's scope (existing exception service) |
+| Submit rollout plan / control draft | CONTROL_ENGINEER (existing services) |
+| Approve, export, advance, deliver | Not available in the workspace (Classic only, unchanged) |
+| AI model | Read-only tools as the caller; no command or draft tools; output never executed |
+
 ## Separation of duties (independent of roles held)
 
 - Package approvals require a `SECURITY_APPROVER` decision **and** a `CLOUD_ENGINEER` decision by **two

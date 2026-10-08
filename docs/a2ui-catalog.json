@@ -1,0 +1,3101 @@
+{
+  "catalogId": "urn:ccp:a2ui:control-workspace:v1",
+  "clientActions": {
+    "ws.prepare_exception_draft": "Prepare an unsaved exception draft for a resource (read-only).",
+    "ws.run_assessment": "Ask the user to confirm, then call the existing POST /api/v1/assessments.",
+    "ws.select_scope": "Re-run the investigation for another readable scope (read-only)."
+  },
+  "components": {
+    "ApplicationReadinessPanel": {
+      "data_required": [
+        "applications",
+        "available",
+        "evidence",
+        "note"
+      ],
+      "data_schema": {
+        "$defs": {
+          "ApplicationReadiness": {
+            "additionalProperties": false,
+            "properties": {
+              "application": {
+                "maxLength": 256,
+                "title": "Application",
+                "type": "string"
+              },
+              "blockers": {
+                "items": {
+                  "$ref": "#/$defs/ReadinessBlocker"
+                },
+                "title": "Blockers",
+                "type": "array"
+              },
+              "readiness": {
+                "maxLength": 32,
+                "title": "Readiness",
+                "type": "string"
+              },
+              "resources": {
+                "title": "Resources",
+                "type": "integer"
+              }
+            },
+            "required": [
+              "application",
+              "readiness",
+              "resources",
+              "blockers"
+            ],
+            "title": "ApplicationReadiness",
+            "type": "object"
+          },
+          "EvidenceRecord": {
+            "additionalProperties": false,
+            "properties": {
+              "application": {
+                "maxLength": 256,
+                "title": "Application",
+                "type": "string"
+              },
+              "collected_at": {
+                "maxLength": 64,
+                "title": "Collected At",
+                "type": "string"
+              },
+              "id": {
+                "maxLength": 256,
+                "title": "Id",
+                "type": "string"
+              },
+              "prerequisite": {
+                "maxLength": 64,
+                "title": "Prerequisite",
+                "type": "string"
+              },
+              "provenance": {
+                "maxLength": 32,
+                "title": "Provenance",
+                "type": "string"
+              },
+              "provided_by": {
+                "maxLength": 256,
+                "title": "Provided By",
+                "type": "string"
+              },
+              "scope_id": {
+                "maxLength": 256,
+                "title": "Scope Id",
+                "type": "string"
+              },
+              "stale": {
+                "title": "Stale",
+                "type": "boolean"
+              },
+              "status": {
+                "maxLength": 32,
+                "title": "Status",
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "application",
+              "scope_id",
+              "prerequisite",
+              "status",
+              "collected_at",
+              "stale",
+              "provided_by",
+              "provenance"
+            ],
+            "title": "EvidenceRecord",
+            "type": "object"
+          },
+          "ReadinessBlocker": {
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "maxLength": 64,
+                "title": "Kind",
+                "type": "string"
+              },
+              "message": {
+                "maxLength": 4000,
+                "title": "Message",
+                "type": "string"
+              },
+              "owner_team": {
+                "maxLength": 256,
+                "title": "Owner Team",
+                "type": "string"
+              },
+              "resolution": {
+                "maxLength": 4000,
+                "title": "Resolution",
+                "type": "string"
+              },
+              "scope_id": {
+                "anyOf": [
+                  {
+                    "maxLength": 256,
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Scope Id"
+              }
+            },
+            "required": [
+              "kind",
+              "message",
+              "resolution",
+              "owner_team"
+            ],
+            "title": "ReadinessBlocker",
+            "type": "object"
+          }
+        },
+        "additionalProperties": false,
+        "properties": {
+          "applications": {
+            "items": {
+              "$ref": "#/$defs/ApplicationReadiness"
+            },
+            "title": "Applications",
+            "type": "array"
+          },
+          "available": {
+            "title": "Available",
+            "type": "boolean"
+          },
+          "evidence": {
+            "items": {
+              "$ref": "#/$defs/EvidenceRecord"
+            },
+            "title": "Evidence",
+            "type": "array"
+          },
+          "note": {
+            "maxLength": 4000,
+            "title": "Note",
+            "type": "string"
+          },
+          "run_id": {
+            "anyOf": [
+              {
+                "maxLength": 256,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Run Id"
+          }
+        },
+        "required": [
+          "available",
+          "applications",
+          "evidence",
+          "note"
+        ],
+        "title": "ApplicationReadinessPanelData",
+        "type": "object"
+      },
+      "description": "Readiness by application, open blockers and supplied evidence.",
+      "kind": "domain",
+      "props_schema": {
+        "$defs": {
+          "DataBinding": {
+            "additionalProperties": false,
+            "properties": {
+              "path": {
+                "pattern": "^/views/[a-z][a-z0-9_]{0,39}$",
+                "title": "Path",
+                "type": "string"
+              }
+            },
+            "required": [
+              "path"
+            ],
+            "title": "DataBinding",
+            "type": "object"
+          }
+        },
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/DataBinding"
+          },
+          "title": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "data"
+        ],
+        "title": "DomainProps",
+        "type": "object"
+      }
+    },
+    "ApprovalStatus": {
+      "data_required": [
+        "decisions",
+        "failing_gates",
+        "note",
+        "package",
+        "required_roles"
+      ],
+      "data_schema": {
+        "$defs": {
+          "DecisionRow": {
+            "additionalProperties": false,
+            "properties": {
+              "actor_id": {
+                "maxLength": 256,
+                "title": "Actor Id",
+                "type": "string"
+              },
+              "bound_to_current_digest": {
+                "title": "Bound To Current Digest",
+                "type": "boolean"
+              },
+              "decided_at": {
+                "anyOf": [
+                  {
+                    "maxLength": 64,
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Decided At"
+              },
+              "decision": {
+                "maxLength": 32,
+                "title": "Decision",
+                "type": "string"
+              },
+              "role": {
+                "maxLength": 64,
+                "title": "Role",
+                "type": "string"
+              }
+            },
+            "required": [
+              "role",
+              "actor_id",
+              "decision",
+              "bound_to_current_digest"
+            ],
+            "title": "DecisionRow",
+            "type": "object"
+          },
+          "GateRow": {
+            "additionalProperties": false,
+            "properties": {
+              "detail": {
+                "maxLength": 4000,
+                "title": "Detail",
+                "type": "string"
+              },
+              "id": {
+                "maxLength": 128,
+                "title": "Id",
+                "type": "string"
+              },
+              "label": {
+                "maxLength": 256,
+                "title": "Label",
+                "type": "string"
+              },
+              "phase": {
+                "maxLength": 32,
+                "title": "Phase",
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "label",
+              "phase",
+              "detail"
+            ],
+            "title": "GateRow",
+            "type": "object"
+          },
+          "PackageRef": {
+            "additionalProperties": false,
+            "properties": {
+              "href": {
+                "maxLength": 512,
+                "pattern": "^/(dashboard|controls|assessments|exceptions|rollouts|bundles|implementations|audit|workspace)(/[A-Za-z0-9._~:@-]+)*(\\?[A-Za-z0-9._~:@=&%+/-]*)?$",
+                "title": "Href",
+                "type": "string"
+              },
+              "id": {
+                "maxLength": 256,
+                "title": "Id",
+                "type": "string"
+              },
+              "manifest_digest": {
+                "maxLength": 128,
+                "title": "Manifest Digest",
+                "type": "string"
+              },
+              "revision": {
+                "title": "Revision",
+                "type": "integer"
+              },
+              "status": {
+                "maxLength": 32,
+                "title": "Status",
+                "type": "string"
+              },
+              "through_stage": {
+                "maxLength": 32,
+                "title": "Through Stage",
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "revision",
+              "status",
+              "manifest_digest",
+              "through_stage",
+              "href"
+            ],
+            "title": "PackageRef",
+            "type": "object"
+          }
+        },
+        "additionalProperties": false,
+        "properties": {
+          "decisions": {
+            "items": {
+              "$ref": "#/$defs/DecisionRow"
+            },
+            "title": "Decisions",
+            "type": "array"
+          },
+          "failing_gates": {
+            "items": {
+              "$ref": "#/$defs/GateRow"
+            },
+            "title": "Failing Gates",
+            "type": "array"
+          },
+          "note": {
+            "maxLength": 4000,
+            "title": "Note",
+            "type": "string"
+          },
+          "package": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/PackageRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "required_roles": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Required Roles",
+            "type": "array"
+          }
+        },
+        "required": [
+          "package",
+          "required_roles",
+          "decisions",
+          "failing_gates",
+          "note"
+        ],
+        "title": "ApprovalStatusData",
+        "type": "object"
+      },
+      "description": "Change package status, digest-bound decisions and failing gates (read-only).",
+      "kind": "domain",
+      "props_schema": {
+        "$defs": {
+          "DataBinding": {
+            "additionalProperties": false,
+            "properties": {
+              "path": {
+                "pattern": "^/views/[a-z][a-z0-9_]{0,39}$",
+                "title": "Path",
+                "type": "string"
+              }
+            },
+            "required": [
+              "path"
+            ],
+            "title": "DataBinding",
+            "type": "object"
+          }
+        },
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/DataBinding"
+          },
+          "title": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "data"
+        ],
+        "title": "DomainProps",
+        "type": "object"
+      }
+    },
+    "CanvasNotice": {
+      "description": "Plain-text notice with an info, warning or critical tone.",
+      "kind": "layout",
+      "props_schema": {
+        "additionalProperties": false,
+        "properties": {
+          "text": {
+            "maxLength": 1000,
+            "minLength": 1,
+            "title": "Text",
+            "type": "string"
+          },
+          "tone": {
+            "enum": [
+              "info",
+              "warning",
+              "critical"
+            ],
+            "title": "Tone",
+            "type": "string"
+          }
+        },
+        "required": [
+          "tone",
+          "text"
+        ],
+        "title": "CanvasNoticeProps",
+        "type": "object"
+      }
+    },
+    "CanvasStack": {
+      "description": "Vertical layout container (children are component ids).",
+      "kind": "layout",
+      "props_schema": {
+        "additionalProperties": false,
+        "properties": {
+          "children": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 40,
+            "minItems": 1,
+            "title": "Children",
+            "type": "array"
+          }
+        },
+        "required": [
+          "children"
+        ],
+        "title": "CanvasStackProps",
+        "type": "object"
+      }
+    },
+    "ControlCoverageMatrix": {
+      "data_required": [
+        "available",
+        "columns",
+        "denominator",
+        "links",
+        "rows",
+        "totals",
+        "unit",
+        "verified_protected_ratio"
+      ],
+      "data_schema": {
+        "$defs": {
+          "CoverageColumn": {
+            "additionalProperties": false,
+            "properties": {
+              "key": {
+                "maxLength": 64,
+                "title": "Key",
+                "type": "string"
+              },
+              "label": {
+                "maxLength": 64,
+                "title": "Label",
+                "type": "string"
+              }
+            },
+            "required": [
+              "key",
+              "label"
+            ],
+            "title": "CoverageColumn",
+            "type": "object"
+          },
+          "CoverageRow": {
+            "additionalProperties": false,
+            "properties": {
+              "cells": {
+                "additionalProperties": {
+                  "type": "integer"
+                },
+                "title": "Cells",
+                "type": "object"
+              },
+              "environment": {
+                "anyOf": [
+                  {
+                    "maxLength": 32,
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Environment"
+              },
+              "scope_id": {
+                "maxLength": 256,
+                "title": "Scope Id",
+                "type": "string"
+              },
+              "scope_name": {
+                "maxLength": 256,
+                "title": "Scope Name",
+                "type": "string"
+              }
+            },
+            "required": [
+              "scope_id",
+              "scope_name",
+              "cells"
+            ],
+            "title": "CoverageRow",
+            "type": "object"
+          },
+          "Link": {
+            "additionalProperties": false,
+            "properties": {
+              "href": {
+                "maxLength": 512,
+                "pattern": "^/(dashboard|controls|assessments|exceptions|rollouts|bundles|implementations|audit|workspace)(/[A-Za-z0-9._~:@-]+)*(\\?[A-Za-z0-9._~:@=&%+/-]*)?$",
+                "title": "Href",
+                "type": "string"
+              },
+              "label": {
+                "maxLength": 120,
+                "minLength": 1,
+                "title": "Label",
+                "type": "string"
+              }
+            },
+            "required": [
+              "label",
+              "href"
+            ],
+            "title": "Link",
+            "type": "object"
+          }
+        },
+        "additionalProperties": false,
+        "properties": {
+          "assessment_run_id": {
+            "anyOf": [
+              {
+                "maxLength": 256,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Assessment Run Id"
+          },
+          "available": {
+            "title": "Available",
+            "type": "boolean"
+          },
+          "columns": {
+            "items": {
+              "$ref": "#/$defs/CoverageColumn"
+            },
+            "title": "Columns",
+            "type": "array"
+          },
+          "denominator": {
+            "maxLength": 4000,
+            "title": "Denominator",
+            "type": "string"
+          },
+          "links": {
+            "items": {
+              "$ref": "#/$defs/Link"
+            },
+            "title": "Links",
+            "type": "array"
+          },
+          "rows": {
+            "items": {
+              "$ref": "#/$defs/CoverageRow"
+            },
+            "title": "Rows",
+            "type": "array"
+          },
+          "totals": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Totals",
+            "type": "object"
+          },
+          "unavailable_reason": {
+            "anyOf": [
+              {
+                "maxLength": 1000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Unavailable Reason"
+          },
+          "unit": {
+            "maxLength": 256,
+            "title": "Unit",
+            "type": "string"
+          },
+          "verified_protected_ratio": {
+            "maxLength": 32,
+            "title": "Verified Protected Ratio",
+            "type": "string"
+          }
+        },
+        "required": [
+          "available",
+          "unit",
+          "denominator",
+          "columns",
+          "rows",
+          "totals",
+          "verified_protected_ratio",
+          "links"
+        ],
+        "title": "ControlCoverageMatrixData",
+        "type": "object"
+      },
+      "description": "Per-scope coverage from the latest completed assessment, with stated denominator.",
+      "kind": "domain",
+      "props_schema": {
+        "$defs": {
+          "DataBinding": {
+            "additionalProperties": false,
+            "properties": {
+              "path": {
+                "pattern": "^/views/[a-z][a-z0-9_]{0,39}$",
+                "title": "Path",
+                "type": "string"
+              }
+            },
+            "required": [
+              "path"
+            ],
+            "title": "DataBinding",
+            "type": "object"
+          }
+        },
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/DataBinding"
+          },
+          "title": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "data"
+        ],
+        "title": "DomainProps",
+        "type": "object"
+      }
+    },
+    "ControlSummary": {
+      "data_required": [
+        "control_id",
+        "engineering_owner",
+        "exception_eligible",
+        "implementations",
+        "limitations",
+        "links",
+        "name",
+        "next_decision",
+        "operational_owner",
+        "origin",
+        "prevention_boundary",
+        "providers",
+        "resource_types",
+        "revision",
+        "revision_id",
+        "security_objective",
+        "security_owner",
+        "severity",
+        "status"
+      ],
+      "data_schema": {
+        "$defs": {
+          "ImplementationSummary": {
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "maxLength": 256,
+                "title": "Id",
+                "type": "string"
+              },
+              "integration_ready": {
+                "anyOf": [
+                  {
+                    "type": "boolean"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Integration Ready"
+              },
+              "latest_revision": {
+                "title": "Latest Revision",
+                "type": "integer"
+              },
+              "latest_revision_id": {
+                "maxLength": 256,
+                "title": "Latest Revision Id",
+                "type": "string"
+              },
+              "mechanism_role": {
+                "maxLength": 64,
+                "title": "Mechanism Role",
+                "type": "string"
+              },
+              "name": {
+                "maxLength": 256,
+                "title": "Name",
+                "type": "string"
+              },
+              "pinned_version": {
+                "anyOf": [
+                  {
+                    "maxLength": 64,
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Pinned Version"
+              },
+              "provider": {
+                "maxLength": 16,
+                "title": "Provider",
+                "type": "string"
+              },
+              "source_ref": {
+                "maxLength": 512,
+                "title": "Source Ref",
+                "type": "string"
+              },
+              "status": {
+                "maxLength": 32,
+                "title": "Status",
+                "type": "string"
+              },
+              "validation_outcome": {
+                "anyOf": [
+                  {
+                    "maxLength": 64,
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Validation Outcome"
+              },
+              "verification_status": {
+                "anyOf": [
+                  {
+                    "maxLength": 64,
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Verification Status"
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "provider",
+              "mechanism_role",
+              "latest_revision_id",
+              "latest_revision",
+              "status",
+              "source_ref"
+            ],
+            "title": "ImplementationSummary",
+            "type": "object"
+          },
+          "Link": {
+            "additionalProperties": false,
+            "properties": {
+              "href": {
+                "maxLength": 512,
+                "pattern": "^/(dashboard|controls|assessments|exceptions|rollouts|bundles|implementations|audit|workspace)(/[A-Za-z0-9._~:@-]+)*(\\?[A-Za-z0-9._~:@=&%+/-]*)?$",
+                "title": "Href",
+                "type": "string"
+              },
+              "label": {
+                "maxLength": 120,
+                "minLength": 1,
+                "title": "Label",
+                "type": "string"
+              }
+            },
+            "required": [
+              "label",
+              "href"
+            ],
+            "title": "Link",
+            "type": "object"
+          },
+          "NextDecision": {
+            "additionalProperties": false,
+            "properties": {
+              "decision": {
+                "maxLength": 256,
+                "title": "Decision",
+                "type": "string"
+              },
+              "detail": {
+                "maxLength": 4000,
+                "title": "Detail",
+                "type": "string"
+              },
+              "owner_role": {
+                "maxLength": 64,
+                "title": "Owner Role",
+                "type": "string"
+              }
+            },
+            "required": [
+              "decision",
+              "owner_role",
+              "detail"
+            ],
+            "title": "NextDecision",
+            "type": "object"
+          }
+        },
+        "additionalProperties": false,
+        "properties": {
+          "control_id": {
+            "maxLength": 256,
+            "title": "Control Id",
+            "type": "string"
+          },
+          "engineering_owner": {
+            "maxLength": 256,
+            "title": "Engineering Owner",
+            "type": "string"
+          },
+          "exception_eligible": {
+            "title": "Exception Eligible",
+            "type": "boolean"
+          },
+          "implementations": {
+            "items": {
+              "$ref": "#/$defs/ImplementationSummary"
+            },
+            "title": "Implementations",
+            "type": "array"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Limitations",
+            "type": "array"
+          },
+          "links": {
+            "items": {
+              "$ref": "#/$defs/Link"
+            },
+            "title": "Links",
+            "type": "array"
+          },
+          "name": {
+            "maxLength": 256,
+            "title": "Name",
+            "type": "string"
+          },
+          "next_decision": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/NextDecision"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "operational_owner": {
+            "maxLength": 256,
+            "title": "Operational Owner",
+            "type": "string"
+          },
+          "origin": {
+            "maxLength": 32,
+            "title": "Origin",
+            "type": "string"
+          },
+          "prevention_boundary": {
+            "maxLength": 4000,
+            "title": "Prevention Boundary",
+            "type": "string"
+          },
+          "providers": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Providers",
+            "type": "array"
+          },
+          "resource_types": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Resource Types",
+            "type": "array"
+          },
+          "revision": {
+            "title": "Revision",
+            "type": "integer"
+          },
+          "revision_id": {
+            "maxLength": 256,
+            "title": "Revision Id",
+            "type": "string"
+          },
+          "security_objective": {
+            "maxLength": 4000,
+            "title": "Security Objective",
+            "type": "string"
+          },
+          "security_owner": {
+            "maxLength": 256,
+            "title": "Security Owner",
+            "type": "string"
+          },
+          "severity": {
+            "maxLength": 16,
+            "title": "Severity",
+            "type": "string"
+          },
+          "status": {
+            "maxLength": 32,
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "control_id",
+          "name",
+          "revision",
+          "revision_id",
+          "status",
+          "severity",
+          "origin",
+          "operational_owner",
+          "providers",
+          "resource_types",
+          "security_objective",
+          "prevention_boundary",
+          "limitations",
+          "exception_eligible",
+          "security_owner",
+          "engineering_owner",
+          "implementations",
+          "next_decision",
+          "links"
+        ],
+        "title": "ControlSummaryData",
+        "type": "object"
+      },
+      "description": "Security intent, revision status, prevention boundary, implementations and next decision.",
+      "kind": "domain",
+      "props_schema": {
+        "$defs": {
+          "DataBinding": {
+            "additionalProperties": false,
+            "properties": {
+              "path": {
+                "pattern": "^/views/[a-z][a-z0-9_]{0,39}$",
+                "title": "Path",
+                "type": "string"
+              }
+            },
+            "required": [
+              "path"
+            ],
+            "title": "DataBinding",
+            "type": "object"
+          }
+        },
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/DataBinding"
+          },
+          "title": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "data"
+        ],
+        "title": "DomainProps",
+        "type": "object"
+      }
+    },
+    "EvidencePanel": {
+      "data_required": [
+        "assumptions",
+        "confidence",
+        "demo_data",
+        "limitations",
+        "sources"
+      ],
+      "data_schema": {
+        "$defs": {
+          "ConfidenceItem": {
+            "additionalProperties": false,
+            "properties": {
+              "category": {
+                "maxLength": 16,
+                "title": "Category",
+                "type": "string"
+              },
+              "reasons": {
+                "items": {
+                  "type": "string"
+                },
+                "title": "Reasons",
+                "type": "array"
+              }
+            },
+            "required": [
+              "category",
+              "reasons"
+            ],
+            "title": "ConfidenceItem",
+            "type": "object"
+          },
+          "EvidenceSource": {
+            "additionalProperties": false,
+            "properties": {
+              "collected_at": {
+                "anyOf": [
+                  {
+                    "maxLength": 64,
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Collected At"
+              },
+              "digest": {
+                "anyOf": [
+                  {
+                    "maxLength": 128,
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Digest"
+              },
+              "id": {
+                "maxLength": 256,
+                "title": "Id",
+                "type": "string"
+              },
+              "kind": {
+                "maxLength": 64,
+                "title": "Kind",
+                "type": "string"
+              },
+              "label": {
+                "maxLength": 256,
+                "title": "Label",
+                "type": "string"
+              },
+              "provenance": {
+                "anyOf": [
+                  {
+                    "maxLength": 64,
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Provenance"
+              },
+              "stale": {
+                "anyOf": [
+                  {
+                    "type": "boolean"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Stale"
+              }
+            },
+            "required": [
+              "kind",
+              "id",
+              "label"
+            ],
+            "title": "EvidenceSource",
+            "type": "object"
+          }
+        },
+        "additionalProperties": false,
+        "properties": {
+          "assumptions": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Assumptions",
+            "type": "array"
+          },
+          "confidence": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "$ref": "#/$defs/ConfidenceItem"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Confidence"
+          },
+          "demo_data": {
+            "title": "Demo Data",
+            "type": "boolean"
+          },
+          "disclosure": {
+            "anyOf": [
+              {
+                "maxLength": 4000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Disclosure"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Limitations",
+            "type": "array"
+          },
+          "sources": {
+            "items": {
+              "$ref": "#/$defs/EvidenceSource"
+            },
+            "title": "Sources",
+            "type": "array"
+          }
+        },
+        "required": [
+          "demo_data",
+          "sources",
+          "confidence",
+          "limitations",
+          "assumptions"
+        ],
+        "title": "EvidencePanelData",
+        "type": "object"
+      },
+      "description": "Data sources, provenance, freshness, confidence and limitations.",
+      "kind": "domain",
+      "props_schema": {
+        "$defs": {
+          "DataBinding": {
+            "additionalProperties": false,
+            "properties": {
+              "path": {
+                "pattern": "^/views/[a-z][a-z0-9_]{0,39}$",
+                "title": "Path",
+                "type": "string"
+              }
+            },
+            "required": [
+              "path"
+            ],
+            "title": "DataBinding",
+            "type": "object"
+          }
+        },
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/DataBinding"
+          },
+          "title": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "data"
+        ],
+        "title": "DomainProps",
+        "type": "object"
+      }
+    },
+    "ExceptionReview": {
+      "data_required": [
+        "counts_by_status",
+        "items",
+        "links",
+        "note"
+      ],
+      "data_schema": {
+        "$defs": {
+          "ExceptionItem": {
+            "additionalProperties": false,
+            "properties": {
+              "application": {
+                "maxLength": 256,
+                "title": "Application",
+                "type": "string"
+              },
+              "days_until_expiry": {
+                "title": "Days Until Expiry",
+                "type": "number"
+              },
+              "disposition": {
+                "maxLength": 32,
+                "title": "Disposition",
+                "type": "string"
+              },
+              "effective_status": {
+                "maxLength": 32,
+                "title": "Effective Status",
+                "type": "string"
+              },
+              "expires_at": {
+                "anyOf": [
+                  {
+                    "maxLength": 64,
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Expires At"
+              },
+              "expiring_soon": {
+                "title": "Expiring Soon",
+                "type": "boolean"
+              },
+              "granularity": {
+                "maxLength": 32,
+                "title": "Granularity",
+                "type": "string"
+              },
+              "href": {
+                "maxLength": 512,
+                "pattern": "^/(dashboard|controls|assessments|exceptions|rollouts|bundles|implementations|audit|workspace)(/[A-Za-z0-9._~:@-]+)*(\\?[A-Za-z0-9._~:@=&%+/-]*)?$",
+                "title": "Href",
+                "type": "string"
+              },
+              "id": {
+                "maxLength": 256,
+                "title": "Id",
+                "type": "string"
+              },
+              "native_status": {
+                "maxLength": 32,
+                "title": "Native Status",
+                "type": "string"
+              },
+              "representability": {
+                "maxLength": 64,
+                "title": "Representability",
+                "type": "string"
+              },
+              "requester_id": {
+                "maxLength": 256,
+                "title": "Requester Id",
+                "type": "string"
+              },
+              "resource_ids": {
+                "items": {
+                  "type": "string"
+                },
+                "title": "Resource Ids",
+                "type": "array"
+              },
+              "scope_id": {
+                "maxLength": 256,
+                "title": "Scope Id",
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "scope_id",
+              "application",
+              "granularity",
+              "resource_ids",
+              "effective_status",
+              "native_status",
+              "disposition",
+              "representability",
+              "days_until_expiry",
+              "expiring_soon",
+              "requester_id",
+              "href"
+            ],
+            "title": "ExceptionItem",
+            "type": "object"
+          },
+          "Link": {
+            "additionalProperties": false,
+            "properties": {
+              "href": {
+                "maxLength": 512,
+                "pattern": "^/(dashboard|controls|assessments|exceptions|rollouts|bundles|implementations|audit|workspace)(/[A-Za-z0-9._~:@-]+)*(\\?[A-Za-z0-9._~:@=&%+/-]*)?$",
+                "title": "Href",
+                "type": "string"
+              },
+              "label": {
+                "maxLength": 120,
+                "minLength": 1,
+                "title": "Label",
+                "type": "string"
+              }
+            },
+            "required": [
+              "label",
+              "href"
+            ],
+            "title": "Link",
+            "type": "object"
+          }
+        },
+        "additionalProperties": false,
+        "properties": {
+          "counts_by_status": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Counts By Status",
+            "type": "object"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/$defs/ExceptionItem"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "links": {
+            "items": {
+              "$ref": "#/$defs/Link"
+            },
+            "title": "Links",
+            "type": "array"
+          },
+          "note": {
+            "maxLength": 4000,
+            "title": "Note",
+            "type": "string"
+          }
+        },
+        "required": [
+          "items",
+          "counts_by_status",
+          "note",
+          "links"
+        ],
+        "title": "ExceptionReviewData",
+        "type": "object"
+      },
+      "description": "Exceptions with governance vs native status, disposition and expiry.",
+      "kind": "domain",
+      "props_schema": {
+        "$defs": {
+          "DataBinding": {
+            "additionalProperties": false,
+            "properties": {
+              "path": {
+                "pattern": "^/views/[a-z][a-z0-9_]{0,39}$",
+                "title": "Path",
+                "type": "string"
+              }
+            },
+            "required": [
+              "path"
+            ],
+            "title": "DataBinding",
+            "type": "object"
+          }
+        },
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/DataBinding"
+          },
+          "title": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "data"
+        ],
+        "title": "DomainProps",
+        "type": "object"
+      }
+    },
+    "GitOpsHandoffPreview": {
+      "data_required": [
+        "bundle",
+        "note"
+      ],
+      "data_schema": {
+        "$defs": {
+          "BundleFile": {
+            "additionalProperties": false,
+            "properties": {
+              "path": {
+                "maxLength": 512,
+                "title": "Path",
+                "type": "string"
+              },
+              "sha256": {
+                "maxLength": 128,
+                "title": "Sha256",
+                "type": "string"
+              }
+            },
+            "required": [
+              "path",
+              "sha256"
+            ],
+            "title": "BundleFile",
+            "type": "object"
+          },
+          "BundleRef": {
+            "additionalProperties": false,
+            "properties": {
+              "banner": {
+                "maxLength": 512,
+                "title": "Banner",
+                "type": "string"
+              },
+              "bundle_digest": {
+                "maxLength": 128,
+                "title": "Bundle Digest",
+                "type": "string"
+              },
+              "exported_at": {
+                "anyOf": [
+                  {
+                    "maxLength": 64,
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Exported At"
+              },
+              "files": {
+                "items": {
+                  "$ref": "#/$defs/BundleFile"
+                },
+                "title": "Files",
+                "type": "array"
+              },
+              "href": {
+                "maxLength": 512,
+                "pattern": "^/(dashboard|controls|assessments|exceptions|rollouts|bundles|implementations|audit|workspace)(/[A-Za-z0-9._~:@-]+)*(\\?[A-Za-z0-9._~:@=&%+/-]*)?$",
+                "title": "Href",
+                "type": "string"
+              },
+              "id": {
+                "maxLength": 256,
+                "title": "Id",
+                "type": "string"
+              },
+              "kind": {
+                "maxLength": 32,
+                "title": "Kind",
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "kind",
+              "banner",
+              "bundle_digest",
+              "files",
+              "href"
+            ],
+            "title": "BundleRef",
+            "type": "object"
+          }
+        },
+        "additionalProperties": false,
+        "properties": {
+          "bundle": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/BundleRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "note": {
+            "maxLength": 4000,
+            "title": "Note",
+            "type": "string"
+          },
+          "package_status": {
+            "anyOf": [
+              {
+                "maxLength": 32,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Package Status"
+          }
+        },
+        "required": [
+          "bundle",
+          "note"
+        ],
+        "title": "GitOpsHandoffPreviewData",
+        "type": "object"
+      },
+      "description": "Exported handoff bundle files and digests (approved does not mean deployed).",
+      "kind": "domain",
+      "props_schema": {
+        "$defs": {
+          "DataBinding": {
+            "additionalProperties": false,
+            "properties": {
+              "path": {
+                "pattern": "^/views/[a-z][a-z0-9_]{0,39}$",
+                "title": "Path",
+                "type": "string"
+              }
+            },
+            "required": [
+              "path"
+            ],
+            "title": "DataBinding",
+            "type": "object"
+          }
+        },
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/DataBinding"
+          },
+          "title": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "data"
+        ],
+        "title": "DomainProps",
+        "type": "object"
+      }
+    },
+    "ImpactAssessment": {
+      "data_required": [
+        "available",
+        "links"
+      ],
+      "data_schema": {
+        "$defs": {
+          "ConfidenceItem": {
+            "additionalProperties": false,
+            "properties": {
+              "category": {
+                "maxLength": 16,
+                "title": "Category",
+                "type": "string"
+              },
+              "reasons": {
+                "items": {
+                  "type": "string"
+                },
+                "title": "Reasons",
+                "type": "array"
+              }
+            },
+            "required": [
+              "category",
+              "reasons"
+            ],
+            "title": "ConfidenceItem",
+            "type": "object"
+          },
+          "Link": {
+            "additionalProperties": false,
+            "properties": {
+              "href": {
+                "maxLength": 512,
+                "pattern": "^/(dashboard|controls|assessments|exceptions|rollouts|bundles|implementations|audit|workspace)(/[A-Za-z0-9._~:@-]+)*(\\?[A-Za-z0-9._~:@=&%+/-]*)?$",
+                "title": "Href",
+                "type": "string"
+              },
+              "label": {
+                "maxLength": 120,
+                "minLength": 1,
+                "title": "Label",
+                "type": "string"
+              }
+            },
+            "required": [
+              "label",
+              "href"
+            ],
+            "title": "Link",
+            "type": "object"
+          },
+          "RequestImpactSummary": {
+            "additionalProperties": false,
+            "properties": {
+              "counts": {
+                "anyOf": [
+                  {
+                    "additionalProperties": {
+                      "type": "integer"
+                    },
+                    "type": "object"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Counts"
+              },
+              "evidence_present": {
+                "title": "Evidence Present",
+                "type": "boolean"
+              },
+              "note": {
+                "maxLength": 4000,
+                "title": "Note",
+                "type": "string"
+              },
+              "total": {
+                "title": "Total",
+                "type": "integer"
+              }
+            },
+            "required": [
+              "evidence_present",
+              "total",
+              "counts",
+              "note"
+            ],
+            "title": "RequestImpactSummary",
+            "type": "object"
+          },
+          "RunAction": {
+            "additionalProperties": false,
+            "properties": {
+              "implementation_revision_id": {
+                "maxLength": 256,
+                "title": "Implementation Revision Id",
+                "type": "string"
+              },
+              "target_scope_id": {
+                "maxLength": 256,
+                "title": "Target Scope Id",
+                "type": "string"
+              }
+            },
+            "required": [
+              "implementation_revision_id",
+              "target_scope_id"
+            ],
+            "title": "RunAction",
+            "type": "object"
+          }
+        },
+        "additionalProperties": false,
+        "properties": {
+          "assessed_at": {
+            "anyOf": [
+              {
+                "maxLength": 64,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Assessed At"
+          },
+          "available": {
+            "title": "Available",
+            "type": "boolean"
+          },
+          "basis_current": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Basis Current"
+          },
+          "basis_notes": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Basis Notes",
+            "type": "array"
+          },
+          "can_run": {
+            "default": false,
+            "title": "Can Run",
+            "type": "boolean"
+          },
+          "confidence": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "$ref": "#/$defs/ConfidenceItem"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Confidence"
+          },
+          "configuration": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "integer"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Configuration"
+          },
+          "data_provenance": {
+            "anyOf": [
+              {
+                "maxLength": 64,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Data Provenance"
+          },
+          "disclosure": {
+            "anyOf": [
+              {
+                "maxLength": 4000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Disclosure"
+          },
+          "evaluator": {
+            "anyOf": [
+              {
+                "maxLength": 256,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Evaluator"
+          },
+          "exceptions": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "integer"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Exceptions"
+          },
+          "filter_note": {
+            "anyOf": [
+              {
+                "maxLength": 1000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Filter Note"
+          },
+          "filtered_to_scope": {
+            "default": false,
+            "title": "Filtered To Scope",
+            "type": "boolean"
+          },
+          "links": {
+            "items": {
+              "$ref": "#/$defs/Link"
+            },
+            "title": "Links",
+            "type": "array"
+          },
+          "newly_preventive_resources": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Newly Preventive Resources"
+          },
+          "readiness": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "integer"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Readiness"
+          },
+          "reconciles": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Reconciles"
+          },
+          "request_impact": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/RequestImpactSummary"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "requested_scope_id": {
+            "anyOf": [
+              {
+                "maxLength": 256,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Requested Scope Id"
+          },
+          "run_action": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/RunAction"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "run_blocked_reason": {
+            "anyOf": [
+              {
+                "maxLength": 1000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Run Blocked Reason"
+          },
+          "run_id": {
+            "anyOf": [
+              {
+                "maxLength": 256,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Run Id"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "maxLength": 32,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Status"
+          },
+          "target_scope_id": {
+            "anyOf": [
+              {
+                "maxLength": 256,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Target Scope Id"
+          },
+          "total_resources": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Total Resources"
+          },
+          "unavailable_reason": {
+            "anyOf": [
+              {
+                "maxLength": 1000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Unavailable Reason"
+          }
+        },
+        "required": [
+          "available",
+          "links"
+        ],
+        "title": "ImpactAssessmentData",
+        "type": "object"
+      },
+      "description": "Persisted impact assessment rollup (configuration, exceptions, requests, readiness).",
+      "kind": "domain",
+      "props_schema": {
+        "$defs": {
+          "DataBinding": {
+            "additionalProperties": false,
+            "properties": {
+              "path": {
+                "pattern": "^/views/[a-z][a-z0-9_]{0,39}$",
+                "title": "Path",
+                "type": "string"
+              }
+            },
+            "required": [
+              "path"
+            ],
+            "title": "DataBinding",
+            "type": "object"
+          }
+        },
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/DataBinding"
+          },
+          "title": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "data"
+        ],
+        "title": "DomainProps",
+        "type": "object"
+      }
+    },
+    "PolicyDiffViewer": {
+      "data_required": [
+        "baseline",
+        "baseline_coverage_counts",
+        "changes",
+        "note",
+        "proposed"
+      ],
+      "data_schema": {
+        "$defs": {
+          "BaselineBinding": {
+            "additionalProperties": false,
+            "properties": {
+              "binding_id": {
+                "maxLength": 256,
+                "title": "Binding Id",
+                "type": "string"
+              },
+              "effect": {
+                "anyOf": [
+                  {
+                    "maxLength": 64,
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Effect"
+              },
+              "enforcement_mode": {
+                "anyOf": [
+                  {
+                    "maxLength": 64,
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Enforcement Mode"
+              },
+              "management": {
+                "maxLength": 64,
+                "title": "Management",
+                "type": "string"
+              },
+              "native_id": {
+                "maxLength": 512,
+                "title": "Native Id",
+                "type": "string"
+              },
+              "observed_at": {
+                "anyOf": [
+                  {
+                    "maxLength": 64,
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Observed At"
+              },
+              "origin": {
+                "maxLength": 64,
+                "title": "Origin",
+                "type": "string"
+              },
+              "provenance": {
+                "anyOf": [
+                  {
+                    "maxLength": 64,
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Provenance"
+              },
+              "scope_id": {
+                "maxLength": 256,
+                "title": "Scope Id",
+                "type": "string"
+              }
+            },
+            "required": [
+              "binding_id",
+              "native_id",
+              "scope_id",
+              "management",
+              "origin"
+            ],
+            "title": "BaselineBinding",
+            "type": "object"
+          },
+          "PolicyChange": {
+            "additionalProperties": false,
+            "properties": {
+              "baseline": {
+                "maxLength": 512,
+                "title": "Baseline",
+                "type": "string"
+              },
+              "field": {
+                "maxLength": 128,
+                "title": "Field",
+                "type": "string"
+              },
+              "proposed": {
+                "maxLength": 512,
+                "title": "Proposed",
+                "type": "string"
+              },
+              "scope_id": {
+                "anyOf": [
+                  {
+                    "maxLength": 256,
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Scope Id"
+              }
+            },
+            "required": [
+              "field",
+              "baseline",
+              "proposed"
+            ],
+            "title": "PolicyChange",
+            "type": "object"
+          },
+          "ProposedImplementation": {
+            "additionalProperties": false,
+            "properties": {
+              "assignment_settings": {
+                "additionalProperties": true,
+                "title": "Assignment Settings",
+                "type": "object"
+              },
+              "content_digest": {
+                "anyOf": [
+                  {
+                    "maxLength": 128,
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Content Digest"
+              },
+              "implementation_revision_id": {
+                "maxLength": 256,
+                "title": "Implementation Revision Id",
+                "type": "string"
+              },
+              "parameters": {
+                "additionalProperties": true,
+                "title": "Parameters",
+                "type": "object"
+              },
+              "pinned_version": {
+                "anyOf": [
+                  {
+                    "maxLength": 64,
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Pinned Version"
+              },
+              "policy_kind": {
+                "maxLength": 64,
+                "title": "Policy Kind",
+                "type": "string"
+              },
+              "source_ref": {
+                "maxLength": 512,
+                "title": "Source Ref",
+                "type": "string"
+              },
+              "verification": {
+                "maxLength": 64,
+                "title": "Verification",
+                "type": "string"
+              }
+            },
+            "required": [
+              "implementation_revision_id",
+              "policy_kind",
+              "source_ref",
+              "parameters",
+              "assignment_settings",
+              "verification"
+            ],
+            "title": "ProposedImplementation",
+            "type": "object"
+          }
+        },
+        "additionalProperties": false,
+        "properties": {
+          "baseline": {
+            "items": {
+              "$ref": "#/$defs/BaselineBinding"
+            },
+            "title": "Baseline",
+            "type": "array"
+          },
+          "baseline_coverage_counts": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Baseline Coverage Counts",
+            "type": "object"
+          },
+          "changes": {
+            "items": {
+              "$ref": "#/$defs/PolicyChange"
+            },
+            "title": "Changes",
+            "type": "array"
+          },
+          "note": {
+            "maxLength": 4000,
+            "title": "Note",
+            "type": "string"
+          },
+          "proposed": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/ProposedImplementation"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "baseline",
+          "proposed",
+          "changes",
+          "baseline_coverage_counts",
+          "note"
+        ],
+        "title": "PolicyDiffViewerData",
+        "type": "object"
+      },
+      "description": "Existing native bindings (baseline) versus the proposed implementation revision.",
+      "kind": "domain",
+      "props_schema": {
+        "$defs": {
+          "DataBinding": {
+            "additionalProperties": false,
+            "properties": {
+              "path": {
+                "pattern": "^/views/[a-z][a-z0-9_]{0,39}$",
+                "title": "Path",
+                "type": "string"
+              }
+            },
+            "required": [
+              "path"
+            ],
+            "title": "DataBinding",
+            "type": "object"
+          }
+        },
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/DataBinding"
+          },
+          "title": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "data"
+        ],
+        "title": "DomainProps",
+        "type": "object"
+      }
+    },
+    "ResourceImpactTable": {
+      "data_required": [
+        "available",
+        "control_id",
+        "links",
+        "rows",
+        "total",
+        "truncated"
+      ],
+      "data_schema": {
+        "$defs": {
+          "Link": {
+            "additionalProperties": false,
+            "properties": {
+              "href": {
+                "maxLength": 512,
+                "pattern": "^/(dashboard|controls|assessments|exceptions|rollouts|bundles|implementations|audit|workspace)(/[A-Za-z0-9._~:@-]+)*(\\?[A-Za-z0-9._~:@=&%+/-]*)?$",
+                "title": "Href",
+                "type": "string"
+              },
+              "label": {
+                "maxLength": 120,
+                "minLength": 1,
+                "title": "Label",
+                "type": "string"
+              }
+            },
+            "required": [
+              "label",
+              "href"
+            ],
+            "title": "Link",
+            "type": "object"
+          },
+          "ResourceRow": {
+            "additionalProperties": false,
+            "properties": {
+              "applicability": {
+                "anyOf": [
+                  {
+                    "maxLength": 32,
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Applicability"
+              },
+              "application": {
+                "anyOf": [
+                  {
+                    "maxLength": 256,
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Application"
+              },
+              "can_prepare_exception": {
+                "title": "Can Prepare Exception",
+                "type": "boolean"
+              },
+              "configuration_result": {
+                "anyOf": [
+                  {
+                    "maxLength": 32,
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Configuration Result"
+              },
+              "exception_disposition": {
+                "anyOf": [
+                  {
+                    "maxLength": 32,
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Exception Disposition"
+              },
+              "exception_id": {
+                "anyOf": [
+                  {
+                    "maxLength": 256,
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Exception Id"
+              },
+              "missing_fields": {
+                "items": {
+                  "type": "string"
+                },
+                "title": "Missing Fields",
+                "type": "array"
+              },
+              "name": {
+                "maxLength": 256,
+                "title": "Name",
+                "type": "string"
+              },
+              "owner": {
+                "anyOf": [
+                  {
+                    "maxLength": 256,
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Owner"
+              },
+              "readiness": {
+                "anyOf": [
+                  {
+                    "maxLength": 32,
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Readiness"
+              },
+              "reasons": {
+                "items": {
+                  "type": "string"
+                },
+                "title": "Reasons",
+                "type": "array"
+              },
+              "resource_id": {
+                "maxLength": 512,
+                "title": "Resource Id",
+                "type": "string"
+              },
+              "resource_type": {
+                "anyOf": [
+                  {
+                    "maxLength": 256,
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Resource Type"
+              },
+              "scope_id": {
+                "anyOf": [
+                  {
+                    "maxLength": 256,
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Scope Id"
+              }
+            },
+            "required": [
+              "resource_id",
+              "name",
+              "reasons",
+              "missing_fields",
+              "can_prepare_exception"
+            ],
+            "title": "ResourceRow",
+            "type": "object"
+          }
+        },
+        "additionalProperties": false,
+        "properties": {
+          "available": {
+            "title": "Available",
+            "type": "boolean"
+          },
+          "control_id": {
+            "maxLength": 256,
+            "title": "Control Id",
+            "type": "string"
+          },
+          "links": {
+            "items": {
+              "$ref": "#/$defs/Link"
+            },
+            "title": "Links",
+            "type": "array"
+          },
+          "rows": {
+            "items": {
+              "$ref": "#/$defs/ResourceRow"
+            },
+            "title": "Rows",
+            "type": "array"
+          },
+          "run_id": {
+            "anyOf": [
+              {
+                "maxLength": 256,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Run Id"
+          },
+          "scope_id": {
+            "anyOf": [
+              {
+                "maxLength": 256,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Scope Id"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          },
+          "truncated": {
+            "title": "Truncated",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "available",
+          "control_id",
+          "total",
+          "truncated",
+          "rows",
+          "links"
+        ],
+        "title": "ResourceImpactTableData",
+        "type": "object"
+      },
+      "description": "Per-resource results from a persisted assessment run.",
+      "kind": "domain",
+      "props_schema": {
+        "$defs": {
+          "DataBinding": {
+            "additionalProperties": false,
+            "properties": {
+              "path": {
+                "pattern": "^/views/[a-z][a-z0-9_]{0,39}$",
+                "title": "Path",
+                "type": "string"
+              }
+            },
+            "required": [
+              "path"
+            ],
+            "title": "DataBinding",
+            "type": "object"
+          }
+        },
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/DataBinding"
+          },
+          "title": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "data"
+        ],
+        "title": "DomainProps",
+        "type": "object"
+      }
+    },
+    "RolloutTimeline": {
+      "data_required": [
+        "note",
+        "plan",
+        "stages",
+        "suggested"
+      ],
+      "data_schema": {
+        "$defs": {
+          "PlanRef": {
+            "additionalProperties": false,
+            "properties": {
+              "href": {
+                "maxLength": 512,
+                "pattern": "^/(dashboard|controls|assessments|exceptions|rollouts|bundles|implementations|audit|workspace)(/[A-Za-z0-9._~:@-]+)*(\\?[A-Za-z0-9._~:@=&%+/-]*)?$",
+                "title": "Href",
+                "type": "string"
+              },
+              "id": {
+                "maxLength": 256,
+                "title": "Id",
+                "type": "string"
+              },
+              "stage": {
+                "maxLength": 32,
+                "title": "Stage",
+                "type": "string"
+              },
+              "state": {
+                "maxLength": 32,
+                "title": "State",
+                "type": "string"
+              },
+              "target_scope_id": {
+                "maxLength": 256,
+                "title": "Target Scope Id",
+                "type": "string"
+              },
+              "title": {
+                "maxLength": 256,
+                "title": "Title",
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "title",
+              "stage",
+              "state",
+              "target_scope_id",
+              "href"
+            ],
+            "title": "PlanRef",
+            "type": "object"
+          },
+          "TimelineStage": {
+            "additionalProperties": false,
+            "properties": {
+              "scope_ids": {
+                "items": {
+                  "type": "string"
+                },
+                "title": "Scope Ids",
+                "type": "array"
+              },
+              "settings_summary": {
+                "maxLength": 512,
+                "title": "Settings Summary",
+                "type": "string"
+              },
+              "stage": {
+                "maxLength": 32,
+                "title": "Stage",
+                "type": "string"
+              },
+              "status": {
+                "enum": [
+                  "DONE",
+                  "CURRENT",
+                  "PLANNED",
+                  "NOT_PLANNED"
+                ],
+                "title": "Status",
+                "type": "string"
+              }
+            },
+            "required": [
+              "stage",
+              "status",
+              "scope_ids",
+              "settings_summary"
+            ],
+            "title": "TimelineStage",
+            "type": "object"
+          }
+        },
+        "additionalProperties": false,
+        "properties": {
+          "note": {
+            "maxLength": 4000,
+            "title": "Note",
+            "type": "string"
+          },
+          "plan": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/PlanRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "stages": {
+            "items": {
+              "$ref": "#/$defs/TimelineStage"
+            },
+            "title": "Stages",
+            "type": "array"
+          },
+          "suggested": {
+            "title": "Suggested",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "plan",
+          "suggested",
+          "stages",
+          "note"
+        ],
+        "title": "RolloutTimelineData",
+        "type": "object"
+      },
+      "description": "Rollout rings and stage for the active plan, or the unpersisted suggested template.",
+      "kind": "domain",
+      "props_schema": {
+        "$defs": {
+          "DataBinding": {
+            "additionalProperties": false,
+            "properties": {
+              "path": {
+                "pattern": "^/views/[a-z][a-z0-9_]{0,39}$",
+                "title": "Path",
+                "type": "string"
+              }
+            },
+            "required": [
+              "path"
+            ],
+            "title": "DataBinding",
+            "type": "object"
+          }
+        },
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/DataBinding"
+          },
+          "title": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "data"
+        ],
+        "title": "DomainProps",
+        "type": "object"
+      }
+    },
+    "ScopeSelector": {
+      "data_required": [
+        "note",
+        "options"
+      ],
+      "data_schema": {
+        "$defs": {
+          "ScopeOption": {
+            "additionalProperties": false,
+            "properties": {
+              "depth": {
+                "title": "Depth",
+                "type": "integer"
+              },
+              "environment": {
+                "anyOf": [
+                  {
+                    "maxLength": 32,
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Environment"
+              },
+              "name": {
+                "maxLength": 256,
+                "title": "Name",
+                "type": "string"
+              },
+              "scope_id": {
+                "maxLength": 256,
+                "title": "Scope Id",
+                "type": "string"
+              },
+              "scope_type": {
+                "maxLength": 64,
+                "title": "Scope Type",
+                "type": "string"
+              }
+            },
+            "required": [
+              "scope_id",
+              "name",
+              "scope_type",
+              "depth"
+            ],
+            "title": "ScopeOption",
+            "type": "object"
+          }
+        },
+        "additionalProperties": false,
+        "properties": {
+          "note": {
+            "maxLength": 4000,
+            "title": "Note",
+            "type": "string"
+          },
+          "options": {
+            "items": {
+              "$ref": "#/$defs/ScopeOption"
+            },
+            "title": "Options",
+            "type": "array"
+          },
+          "provider": {
+            "anyOf": [
+              {
+                "maxLength": 16,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Provider"
+          },
+          "selected_scope_id": {
+            "anyOf": [
+              {
+                "maxLength": 256,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Selected Scope Id"
+          }
+        },
+        "required": [
+          "options",
+          "note"
+        ],
+        "title": "ScopeSelectorData",
+        "type": "object"
+      },
+      "description": "Scopes the current identity may read; changing it re-runs the investigation.",
+      "kind": "domain",
+      "props_schema": {
+        "$defs": {
+          "DataBinding": {
+            "additionalProperties": false,
+            "properties": {
+              "path": {
+                "pattern": "^/views/[a-z][a-z0-9_]{0,39}$",
+                "title": "Path",
+                "type": "string"
+              }
+            },
+            "required": [
+              "path"
+            ],
+            "title": "DataBinding",
+            "type": "object"
+          }
+        },
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/DataBinding"
+          },
+          "title": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "data"
+        ],
+        "title": "DomainProps",
+        "type": "object"
+      }
+    }
+  },
+  "dataPathPattern": "^/views/[a-z][a-z0-9_]{0,39}$",
+  "protocolVersion": "v0.9",
+  "renderer": "@a2ui/react 0.11.1 / @a2ui/web_core 0.11.0 (A2UI v0.9 message processor)",
+  "safeHrefPattern": "^/(dashboard|controls|assessments|exceptions|rollouts|bundles|implementations|audit|workspace)(/[A-Za-z0-9._~:@-]+)*(\\?[A-Za-z0-9._~:@=&%+/-]*)?$"
+}

@@ -26,7 +26,12 @@ browser ──> Next.js (App Router, client pages) ──/api proxy──> FastA
   - `api/`: thin REST routers, strict Pydantic request models, middleware (correlation ids, size/type limits,
     security headers), dependency wiring.
   - `seed/`: deterministic fixtures and seeding; `cli.py`: migrate/seed/reset/reconcile/check-config.
-- **Database**: PostgreSQL 16 with Alembic migrations. Migration 0002 adds immutability triggers and grants.
+  - `workspace/` (optional, behind `ENABLE_A2UI_WORKSPACE`): the AI Control Workspace presentation layer:
+    typed read/draft tools over the services above, deterministic intents, an A2UI v0.9 composer and
+    validator, guided drafts with stale-basis checks, and an optional model provider (`workspace/ai/`).
+    It owns no tables; see `docs/a2ui-workspace.md`.
+- **Database**: PostgreSQL 16 with Alembic migrations. Migration 0002 adds immutability triggers and grants;
+  0003 adds `users.preferences` (experience preference only).
 
 ## Domain model (summary)
 
