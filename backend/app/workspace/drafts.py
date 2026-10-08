@@ -17,6 +17,7 @@ from pydantic import ValidationError
 from sqlalchemy import select
 
 from app.api.schemas import ControlCreate, ExceptionCreate, PlanCreate, Strict
+from app.auth.principal import require_role
 from app.core.clock import iso
 from app.core.digests import digest
 from app.core.errors import Conflict, NotFound, ValidationFailed
@@ -35,6 +36,7 @@ from app.workspace.tools import (
     search_controls,
 )
 
+HIDDEN_PLAN = "not-visible"
 SUBMIT_VIA = "POST /api/v1/workspace/drafts/submit (requires confirmed=true), which calls the existing {svc} service"
 
 
@@ -109,8 +111,8 @@ def prepare_exception_draft(inv: Investigation, inp: ExceptionDraftInput) -> dic
     return {
         "kind": "exception", "title": f"Exception request for {resource.name}",
         "basis": exception_basis(inv, control, resource), "payload": payload,
-        "required_fields": ["business_justification", "technical_justification", "risk_owner",
-                            "compensating_controls"],
+        "required_fields": (["application"] if not resource.application else [])
+        + ["business_justification", "technical_justification", "risk_owner", "compensating_controls"],
         "can_submit": not blocking, "blocking_reasons": blocking, "preview": preview,
         "notes": [f"Maximum validity for {crev.severity} controls is {max_days} days; the suggested expiry is "
                   f"{min(30, max_days)} days.",
@@ -132,9 +134,12 @@ def rollout_basis(inv: Investigation, control: m.Control, irev: m.Implementation
             m.AssessmentRun.status == AssessmentStatus.COMPLETED).order_by(m.AssessmentRun.seq.desc()).limit(1)).first()
     active = None
     if irev is not None:
-        active = inv.ctx.session.scalars(select(m.RolloutPlan.id).where(
+        plan = inv.ctx.session.scalars(select(m.RolloutPlan).where(
             m.RolloutPlan.control_id == control.id, m.RolloutPlan.provider == irev.implementation.provider,
             m.RolloutPlan.state != PlanState.CANCELLED)).first()
+        # A plan whose target scope the caller cannot read is never named (Classic returns 404 for it).
+        if plan is not None:
+            active = plan.id if inv.can_read(plan.target_scope_id) else HIDDEN_PLAN
     latest = irev.implementation.revisions[-1] if irev is not None else None
     return {**_control_revision_basis(control),
             "implementation_revision_id": irev.id if irev else None,
@@ -158,7 +163,9 @@ def _pick_implementation_revision(control: m.Control, irev_id: str | None) -> m.
 def _rollout_blockers(inv: Investigation, irev: m.ImplementationRevision, basis: dict[str, Any]) -> list[str]:
     """Workspace preconditions for a rollout draft, checked when preparing and again when submitting."""
     blocking = []
-    if basis["active_plan_id"]:
+    if basis["active_plan_id"] == HIDDEN_PLAN:
+        blocking.append("A rollout plan you cannot view is already active for this control.")
+    elif basis["active_plan_id"]:
         blocking.append(f"Plan {basis['active_plan_id']} is already active for this control; edit or cancel it in "
                         "the Classic Experience.")
     if basis["assessment_run_id"] is None:
@@ -225,9 +232,6 @@ def prepare_control_draft(inv: Investigation, inp: ControlDraftInput) -> dict[st
     blocking = []
     if not inv.ctx.principal.has_role(Role.CONTROL_ENGINEER):
         blocking.append("Proposing a control requires the CONTROL_ENGINEER role.")
-    if not (inp.provider and inp.resource_type):
-        blocking.append("Name the cloud provider and native resource type in the question (for example 'Azure "
-                        "storage accounts') so the proposal targets something specific.")
     blocking += _duplicate_reason(basis)
     payload = {
         "id": "", "origin": "PROPOSED", "operational_owner": "Cloud Engineering",
@@ -239,7 +243,8 @@ def prepare_control_draft(inv: Investigation, inp: ControlDraftInput) -> dict[st
     }
     return {
         "kind": "control", "title": "New control proposal", "basis": basis, "payload": payload,
-        "required_fields": ["id", "name", "security_objective", "rationale", "severity", "applicability_criteria",
+        "required_fields": ["id", "name", "providers", "resource_types", "security_objective", "rationale", "severity",
+                            "applicability_criteria",
                             "security_owner", "engineering_owner", "prevention_boundary"],
         "can_submit": not blocking, "blocking_reasons": blocking, "preview": None,
         "notes": ["Creates revision 1 as a DRAFT. Submission for review, implementation, validation and assessment "
@@ -278,6 +283,8 @@ def submit_draft(inv: Investigation, body: DraftSubmit) -> dict[str, Any]:
     ctx = inv.ctx
     if body.kind == "exception":
         payload = _validate(ExceptionCreate, body.payload)
+        require_role(ctx.principal, Role.EXCEPTION_REQUESTER, scope_id=ctx.tree.get(payload.scope_id).id,
+                     tree=ctx.tree, action="Requesting an exception")
         control = inv.control(payload.control_id)
         resource = _resource(inv, payload.resource_ids[0]) if payload.resource_ids else None
         _stale(body.basis, exception_basis(inv, control, resource))
@@ -286,6 +293,7 @@ def submit_draft(inv: Investigation, body: DraftSubmit) -> dict[str, Any]:
         control_id, scope_ids = control.id, [exc.scope_id]
     elif body.kind == "rollout_plan":
         payload = _validate(PlanCreate, body.payload)
+        require_role(ctx.principal, Role.CONTROL_ENGINEER, action="Creating a rollout plan")
         control = inv.control(payload.control_id)
         irev = _pick_implementation_revision(control, payload.implementation_revision_id)
         current = rollout_basis(inv, control, irev)
@@ -296,9 +304,10 @@ def submit_draft(inv: Investigation, body: DraftSubmit) -> dict[str, Any]:
         control_id, scope_ids = control.id, [plan.target_scope_id]
     else:
         payload = _validate(ControlCreate, body.payload)
-        current = control_basis(inv, list(payload.providers), list(payload.resource_types))
-        _stale(body.basis, current)
-        _blocked(_duplicate_reason(current))
+        require_role(ctx.principal, Role.CONTROL_ENGINEER, action="Proposing or registering a control")
+        # The only platform state a control proposal depends on is the duplicate check, which is recomputed
+        # here from what is actually being submitted (provider and resource type are edited in the form).
+        _blocked(_duplicate_reason(control_basis(inv, list(payload.providers), list(payload.resource_types))))
         control = controls.create_control(ctx, payload)
         created = {"type": "control", "id": control.id, "href": f"/controls/{control.id}"}
         control_id, scope_ids = control.id, []

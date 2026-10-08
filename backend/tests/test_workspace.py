@@ -574,27 +574,19 @@ def test_control_draft_reports_duplicates_and_creates_new_controls(ws):
                "prevention_boundary": "Prevents create/update with public access enabled."}
     body = {"kind": "control", "basis": draft["basis"], "payload": payload, "confirmed": True}
     ws.post("vic", "/workspace/drafts/submit", body, expected=403)
-    # The duplicate check is recomputed from the payload on the server; a forged or empty basis is refused.
-    for forged in ({}, {**draft["basis"], "search": {"provider": "gcp"}}):
-        r = ws.post("cara", "/workspace/drafts/submit", {**body, "basis": forged}, expected=409).json()
-        assert r["error"]["code"] == "DRAFT_STALE"
-    # A duplicate cannot be submitted even with a basis that matches the server's view.
+    # The duplicate check is recomputed on the server from the submitted payload, whatever basis is sent.
     dup_payload = {**payload, "id": "CTL-AZ-SEARCH-DUP", "providers": ["azure"],
                    "resource_types": ["Microsoft.Search/searchServices"]}
-    r = ws.post("cara", "/workspace/drafts/submit", {**body, "payload": dup_payload, "basis": {
-        "providers": ["azure"], "resource_types": ["Microsoft.Search/searchServices"],
-        "matching_control_ids": dup["basis"]["matching_control_ids"]}}, expected=409).json()
-    assert r["error"]["code"] == "DRAFT_BLOCKED" and AZ_CONTROL in r["error"]["details"]["blocking_reasons"][0]
-    r = ws.post("cara", "/workspace/drafts/submit", {**body, "payload": dup_payload, "basis": {
-        "providers": ["azure"], "resource_types": ["Microsoft.Search/searchServices"],
-        "matching_control_ids": []}}, expected=409).json()
-    assert r["error"]["code"] == "DRAFT_STALE"
+    for forged in ({}, {**draft["basis"], "matching_control_ids": []}, dup["basis"]):
+        r = ws.post("cara", "/workspace/drafts/submit", {**body, "payload": dup_payload, "basis": forged},
+                    expected=409).json()
+        assert r["error"]["code"] == "DRAFT_BLOCKED" and AZ_CONTROL in r["error"]["details"]["blocking_reasons"][0]
     ws.get("cara", "/controls/CTL-AZ-SEARCH-DUP", expected=404)
     out = ws.post("cara", "/workspace/drafts/submit", body, expected=201).json()
     assert out["created"] == {"type": "control", "id": "CTL-AZ-KV-PNA", "href": "/controls/CTL-AZ-KV-PNA"}
     ctl = ws.get("cara", "/controls/CTL-AZ-KV-PNA", expected=200).json()
     assert ctl["current_revision"]["status"] == "DRAFT"
-    # The same draft is now stale: its duplicate check no longer holds.
+    # Submitting the same proposal again is now a duplicate of the control it just created.
     r = ws.post("cara", "/workspace/drafts/submit", {**body, "payload": {**payload, "id": "CTL-AZ-KV-PNA-2"}},
                 expected=409).json()
-    assert r["error"]["code"] == "DRAFT_STALE" and r["error"]["details"]["changed"] == ["matching_control_ids"]
+    assert r["error"]["code"] == "DRAFT_BLOCKED" and "CTL-AZ-KV-PNA" in r["error"]["details"]["blocking_reasons"][0]

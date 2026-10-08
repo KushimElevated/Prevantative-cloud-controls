@@ -20,6 +20,7 @@ from app.workspace.ai.anthropic_provider import FALLBACK_BETA, MAX_TURNS, Anthro
 from app.workspace.ai.base import PLAN_SCHEMA, ModelOutcome
 from app.workspace.ai.orchestrator import ai_status, clean_text
 from app.workspace.ai.scripted import ScriptedProvider
+from app.workspace.tools import TOOLS_BY_API_NAME
 from app.workspace.tools import TOOLS, tool_specs
 from journey import AZ_CONTROL, AZ_IMPL_REV, assess
 from test_workspace import QUESTION, RETAIL_PARTNER, action, assert_safe_surface, components, counts_for, views
@@ -119,13 +120,15 @@ def test_non_read_and_unknown_tools_are_rejected_and_nothing_is_persisted(ai):
     out = ai(provider)
     assert [(name, err) for name, _, err in provider.results] == [(name, True) for name, _ in calls]
     for name, text, _ in provider.results:
-        assert text == f"Error: tool {name!r} is not available. Only read-only tools can be used."
+        assert text == "Error: that tool is not available. Only the read-only tools provided can be used."
     assert counts_for(ai.api) == before
     ai_steps = [s for s in out["steps"] if s["label"].startswith("AI assistant called")]
-    assert [(s["tool"], s["status"]) for s in ai_steps] == [(name, "rejected") for name, _ in calls]
+    # Names the model invents are never echoed; known tool names are shown as they are.
+    labels = [name if name in TOOLS_BY_API_NAME else "(unknown tool)" for name, _ in calls]
+    assert [(s["tool"], s["status"]) for s in ai_steps] == [(label, "rejected") for label in labels]
     assert out["mode"] == "ai"
     event = ai_audit(ai.api)[0]
-    assert event["details"]["tools_called"] == [name for name, _ in calls]
+    assert event["details"]["tools_called"] == labels
 
 
 def test_invalid_tool_arguments_are_rejected(ai):
@@ -191,7 +194,7 @@ def test_valid_plan_is_labelled_sanitised_and_canvas_stays_authoritative(ai):
              suggested_actions=["run_assessment", "approve_package"]))
     out = ai(provider)
     assert out["mode"] == "ai" and out["requested_mode"] == "ai"
-    assert out["mode_note"] == "Ignored 2 view(s) outside the approved catalog."
+    assert out["mode_note"] == "Ignored view(s) outside the approved catalog."
     summary = out["summary"]
     assert summary["origin"] == "ai" and summary["model"] == "scripted-test-model"
     assert summary["label"].startswith("AI-generated summary")
@@ -223,19 +226,20 @@ def test_model_choices_are_checked_against_the_catalogue_and_authorization(ai):
     out = ai(ScriptedProvider([], plan(scope_id="az-sub-payments-prod")), user="riley")
     assert out["mode"] == "ai"
     assert out["intent"]["entities"]["scope_id"] == "az-sub-retail-prod"
-    assert out["mode_note"] == ("Ignored scope 'az-sub-payments-prod' proposed by the model (unknown or not "
-                                "readable).")
+    assert out["mode_note"] == "Ignored a scope proposed by the model that is unknown or not readable."
     for marker in PAYMENTS_MARKERS:
         assert marker not in json.dumps(out).lower()
 
     out = ai(ScriptedProvider([], plan(control_id="CTL-DOES-NOT-EXIST")))
     assert out["intent"]["entities"]["control_id"] == AZ_CONTROL
-    assert "Ignored unknown control 'CTL-DOES-NOT-EXIST' proposed by the model." in out["mode_note"]
+    assert "Ignored a control proposed by the model that does not exist." in out["mode_note"]
+    assert "CTL-DOES-NOT-EXIST" not in json.dumps(out)
 
     out = ai(ScriptedProvider([], plan(scope_id="az-sub-retail-prod")))
     ent = out["intent"]["entities"]
     assert ent["scope_id"] == "az-sub-retail-prod" and ent["scope_reason"] == "chosen by the AI assistant"
-    assert out["context"]["scope"]["id"] == "az-sub-retail-prod" and out["mode_note"] is None
+    assert out["context"]["scope"]["id"] == "az-sub-retail-prod"
+    assert out["mode_note"] == "The AI assistant focused on scope az-sub-retail-prod."
     assert_safe_surface(out)
 
 
@@ -370,7 +374,12 @@ class FakeClient:
     def __init__(self, responses):
         self.responses = list(responses)
         self.calls: list[dict] = []
+        self.options: list[dict] = []
         self.beta = SimpleNamespace(messages=SimpleNamespace(create=self._create))
+
+    def with_options(self, **options):
+        self.options.append(options)
+        return self
 
     def _create(self, **kwargs):
         self.calls.append({**kwargs, "messages": list(kwargs["messages"])})

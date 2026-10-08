@@ -85,13 +85,18 @@ RESOURCE_HINTS = [
 ]
 PROVIDER_HINTS = [(r"\bazure\b", "azure"), (r"\baws\b|\bamazon\b", "aws")]
 ENVIRONMENT_HINTS = [
-    (r"\bnon-?prod(?:uction)?\b", "nonprod"),
-    (r"\bprod(?:uction)?\b", "prod"),
+    (r"\b(?:non|pre)-?prod(?:uction)?\b", "nonprod"),
+    (r"(?<![a-z-])prod(?:uction)?\b", "prod"),
     (r"\bdev(?:elopment)?\b", "dev"),
     (r"\bsandbox\b", "sandbox"),
 ]
 NONPROD_ENVS = {"nonprod", "dev", "sandbox"}
 MIN_MATCH_SCORE = 2
+# Words that describe almost every preventive control; a catalogue match needs more than these.
+GENERIC_WORDS = {"public", "access", "network", "networks", "block", "blocked", "blocking", "deny", "denied", "enable",
+                 "enabled", "disable", "disabled", "aws", "azure", "cloud", "security", "secure", "service",
+                 "services", "resource", "resources", "policy", "policies", "enforce", "enforced", "allow", "allowed",
+                 "restrict", "restricted", "production", "prod", "configuration", "settings", "data", "not", "must"}
 CONTROL_ID = re.compile(r"\bCTL-[A-Z0-9-]{3,60}\b")
 SCOPE_ID = re.compile(r"\b(?:az|aws)-[a-z0-9-]{2,60}\b")
 
@@ -156,10 +161,11 @@ def interpret(inv: Investigation, question: str, *, control_id: str | None = Non
     if it.control_id is None:
         found = search_controls(inv, SearchControlsInput(query=question[:300], provider=it.provider,
                                                          resource_type=it.resource_type))
-        # A resource-type match scores 10; otherwise require two shared words so one coincidental word
-        # (e.g. "prevent") does not select a control.
-        if found["items"] and found["items"][0]["score"] >= MIN_MATCH_SCORE:
-            top = found["items"][0]
+        # A resource-type match scores 10. Otherwise require two shared words, at least one of them specific,
+        # so generic words ("public", "access", "block") or one coincidental word do not select a control.
+        top = found["items"][0] if found["items"] else None
+        if top and (top["score"] >= 10 or (top["score"] >= MIN_MATCH_SCORE
+                                           and set(top["matched_words"]) - GENERIC_WORDS)):
             it.control_id = top["control_id"]
             it.control_reason = "best catalogue match (" + "; ".join(top["match_reasons"]) + ")"
             others = [i["control_id"] for i in found["items"][1:4]]
@@ -167,20 +173,28 @@ def interpret(inv: Investigation, question: str, *, control_id: str | None = Non
                 it.notes.append("Other candidate controls: " + ", ".join(others))
     if it.control_id is not None:
         rev = inv.control(it.control_id).revisions[-1]
-        if it.provider is None and rev.providers:
+        if rev.providers and it.provider not in rev.providers:
+            if it.provider is not None:
+                it.notes.append(f"{it.control_id} applies to {', '.join(rev.providers)}; the {it.provider} hint in "
+                                "the question was not used.")
             it.provider = rev.providers[0]
 
-    # Scope: explicit id > context > environment/application hints > widest readable scope.
+    # Scope: selected/deep-linked > named in the question > environment/application hints > widest readable.
     tree = inv.ctx.tree
     # Unreadable scopes named in the question are ignored exactly like unknown ones (no existence oracle).
-    explicit_scope = next((s for s in SCOPE_ID.findall(q) if s in tree.scopes and inv.can_read(s)), None) or scope_id
-    if explicit_scope:
-        if explicit_scope in tree.scopes and inv.can_read(explicit_scope):
-            it.scope_id = explicit_scope
-            it.scope_reason = "named in the question" if explicit_scope != scope_id else "selected"
-            it.provider = tree.scopes[explicit_scope].provider
+    named = next((s for s in SCOPE_ID.findall(q) if s in tree.scopes and inv.can_read(s)), None)
+    if scope_id is not None:
+        if scope_id in tree.scopes and inv.can_read(scope_id):
+            it.scope_id, it.scope_reason = scope_id, "selected"
+            it.provider = tree.scopes[scope_id].provider
+            if named and named != scope_id:
+                it.notes.append(f"Using the selected scope {scope_id} instead of {named} named in the question.")
             return it
-        it.notes.append(f"Scope {explicit_scope} is not available to your identity.")
+        it.notes.append(f"Scope {scope_id} is not available to your identity.")
+    if named:
+        it.scope_id, it.scope_reason = named, "named in the question"
+        it.provider = tree.scopes[named].provider
+        return it
     readable = [s for s in tree.scopes.values()
                 if (it.provider is None or s.provider == it.provider) and inv.can_read(s.id)]
     apps = {s.application for s in readable if s.application}

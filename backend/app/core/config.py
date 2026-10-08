@@ -51,6 +51,10 @@ class Settings(BaseSettings):
     workspace_ai_max_tool_calls: int = 8
     workspace_ai_timeout_seconds: float = 60.0
     workspace_ai_refusal_fallbacks: bool = True
+    # Bounds so a slow provider cannot starve the API: overall deadline per investigation and a process-wide cap
+    # on concurrent AI investigations (excess requests fall back to deterministic mode immediately).
+    workspace_ai_deadline_seconds: float = 120.0
+    workspace_ai_max_concurrent: int = 3
 
     @property
     def cors_origins(self) -> list[str]:

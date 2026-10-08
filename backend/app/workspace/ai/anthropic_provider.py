@@ -13,6 +13,7 @@ stored or logged here. Errors are reduced to short, secret-free reasons for the 
 from __future__ import annotations
 
 import logging
+import time
 from typing import Any
 
 from app.workspace.ai.base import ModelOutcome, ProviderUnavailable, ToolCaller
@@ -26,7 +27,8 @@ MAX_TURNS = 12
 class AnthropicProvider:
     name = "anthropic"
 
-    def __init__(self, *, model: str, effort: str, timeout_seconds: float, refusal_fallbacks: bool):
+    def __init__(self, *, model: str, effort: str, timeout_seconds: float, refusal_fallbacks: bool,
+                 deadline_seconds: float = 120.0):
         try:
             import anthropic  # imported lazily: AI mode is optional
         except ImportError as exc:  # pragma: no cover - dependency is locked, kept for slim installs
@@ -35,13 +37,17 @@ class AnthropicProvider:
         self.model = model
         self.effort = effort
         self.refusal_fallbacks = refusal_fallbacks
+        self.timeout_seconds = timeout_seconds
+        self.deadline_seconds = deadline_seconds
         # One retry on transient errors; the request as a whole is bounded by the timeout.
         self.client = anthropic.Anthropic(timeout=timeout_seconds, max_retries=1)
 
-    def _create(self, **kwargs: Any):
+    def _create(self, timeout: float, **kwargs: Any):
+        # Per-call timeout never exceeds what is left of the investigation's overall deadline.
+        client = self.client.with_options(timeout=timeout)
         if self.refusal_fallbacks:
-            return self.client.beta.messages.create(betas=[FALLBACK_BETA], fallbacks="default", **kwargs)
-        return self.client.beta.messages.create(**kwargs)
+            return client.beta.messages.create(betas=[FALLBACK_BETA], fallbacks="default", **kwargs)
+        return client.beta.messages.create(**kwargs)
 
     def investigate(self, *, system: str, user: str, tools: list[dict[str, Any]], call_tool: ToolCaller,
                     plan_schema: dict[str, Any], max_tool_calls: int) -> ModelOutcome:
@@ -50,9 +56,15 @@ class AnthropicProvider:
         strict_tools = [{**tool, "strict": True} for tool in tools]
         messages: list[dict[str, Any]] = [{"role": "user", "content": user}]
         calls = 0
+        deadline = time.monotonic() + self.deadline_seconds
         try:
             for _ in range(MAX_TURNS):
+                remaining = deadline - time.monotonic()
+                if remaining <= 1:
+                    outcome.error = "The model did not finish within the time limit."
+                    return outcome
                 response = self._create(
+                    min(self.timeout_seconds, remaining),
                     model=self.model, max_tokens=16000, system=system, tools=strict_tools,
                     tool_choice={"type": "auto"}, messages=messages,
                     output_config={"effort": self.effort,

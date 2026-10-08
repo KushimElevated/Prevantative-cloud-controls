@@ -36,6 +36,12 @@ class RequestContext:
     def commit(self) -> None:
         self.session.commit()
 
+    def release_connection(self) -> None:
+        """End the (read-only) transaction so the pooled connection is returned while waiting on slow external
+        work; the session reconnects lazily on the next query."""
+        self.session.rollback()
+        self._tree = None
+
     def refresh_tree(self) -> ScopeTree:
         self._tree = ScopeTree.load(self.session)
         return self._tree

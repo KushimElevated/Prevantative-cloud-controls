@@ -15,9 +15,10 @@ from __future__ import annotations
 import json
 import re
 from collections import Counter
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import timedelta
-from typing import Annotated, Any, Callable, Literal
+from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 from sqlalchemy import select
@@ -43,7 +44,7 @@ from app.services import settings
 from app.services.context import RequestContext
 from app.services.control_detail import control_detail
 from app.services.dashboard import resource_coverage
-from app.services.exceptions import decisions_for, exception_view
+from app.services.exceptions import effective_status, exception_view
 from app.services.implementations import latest_validation
 from app.services.rollouts import latest_package, package_decisions
 from app.services.views import audit_view, evidence_view
@@ -156,14 +157,39 @@ def _check_scope(inv: Investigation, scope_id: str | None) -> str | None:
     return scope_id
 
 
+NO_SCOPE = "You cannot read any scope of this control's provider, so there is nothing to show here."
+MAX_EXCEPTIONS = 100
+MAX_IDS_PER_EXCEPTION = 10
+
+
+def default_scope(inv: Investigation, control: m.Control) -> str | None:
+    """Widest scope the caller can read among the control's providers (the interpreter's rule)."""
+    tree = inv.ctx.tree
+    for provider in (control.revisions[-1].providers if control.revisions else []):
+        pool = [s for s in tree.scopes.values() if s.provider == provider and inv.can_read(s.id)]
+        if pool:
+            return min(pool, key=lambda s: (len(tree.ancestors(s.id)), s.id)).id
+    return None
+
+
+def resolve_scope(inv: Investigation, control: m.Control, scope_id: str | None) -> str | None:
+    """An explicit scope must be readable (404 otherwise); null resolves to the widest readable scope.
+    Every view is therefore always restricted to a concrete scope the caller can read."""
+    if scope_id is not None:
+        return _check_scope(inv, scope_id)
+    return inv.cached(f"default-scope:{control.id}", lambda: default_scope(inv, control))
+
+
 def select_run(inv: Investigation, control_id: str, scope_id: str | None) -> m.AssessmentRun | None:
-    """Latest completed run whose target scope covers the requested scope (or the latest at all)."""
+    """Latest completed run whose target scope covers the requested scope. No scope, no run."""
     def pick() -> m.AssessmentRun | None:
+        if scope_id is None:
+            return None
         runs = inv.ctx.session.scalars(select(m.AssessmentRun).where(
             m.AssessmentRun.control_id == control_id, m.AssessmentRun.status == AssessmentStatus.COMPLETED)
             .order_by(m.AssessmentRun.seq.desc()))
         for run in runs:
-            if scope_id is None or _within(inv, scope_id, run.target_scope_id):
+            if _within(inv, scope_id, run.target_scope_id):
                 return run
         return None
     return inv.cached(f"run:{control_id}:{scope_id}", pick)
@@ -184,9 +210,8 @@ def _run_is_filtered(inv: Investigation, run: m.AssessmentRun, scope_id: str | N
 
 def _latest_impl_revision(control: m.Control, provider: str | None = None) -> m.ImplementationRevision | None:
     for impl in control.implementations:
-        if provider is None or impl.provider == provider:
-            if impl.revisions:
-                return impl.revisions[-1]
+        if (provider is None or impl.provider == provider) and impl.revisions:
+            return impl.revisions[-1]
     return None
 
 
@@ -221,8 +246,9 @@ def search_controls(inv: Investigation, inp: SearchControlsInput) -> dict[str, A
                 reasons.append(f"resource type {inp.resource_type}")
             else:
                 continue
+        prereqs = [str(p) for impl in c.implementations if impl.revisions for p in impl.revisions[-1].prerequisites]
         text = _words(" ".join([c.id, rev.name, rev.description, rev.security_objective,
-                                " ".join(rev.resource_types)]))
+                                " ".join(rev.resource_types), " ".join(prereqs)]))
         overlap = sorted(q & text)
         score += len(overlap)
         if overlap:
@@ -231,7 +257,8 @@ def search_controls(inv: Investigation, inp: SearchControlsInput) -> dict[str, A
             continue
         items.append({"control_id": c.id, "name": rev.name, "status": rev.status, "revision": rev.revision,
                       "providers": rev.providers, "resource_types": rev.resource_types, "origin": c.origin,
-                      "operational_owner": c.operational_owner, "score": score, "match_reasons": reasons})
+                      "operational_owner": c.operational_owner, "score": score, "match_reasons": reasons,
+                      "matched_words": overlap})
     items.sort(key=lambda i: (-i["score"], i["control_id"]))
     return {"items": items[:20], "total": len(items),
             "note": "Catalogue entries are readable by every role; scoped evidence is filtered per identity."}
@@ -299,13 +326,16 @@ COVERAGE_COLUMNS = [
     ("applicable", "Applicable"), ("compliant", "Compliant"), ("non_compliant", "Non-compliant"),
     ("unknown", "Unknown config"), ("effective_exemptions", "Effective exemptions"),
     ("verified_protected", "Verified protected"), ("unknown_enforcement", "Unknown enforcement"),
-    ("not_enforced", "Not enforced"),
+    ("not_enforced", "Not enforced"), ("not_enforceable_by_mechanism", "Not enforceable by mechanism"),
 ]
+ENFORCEMENT_KEYS = {"EFFECTIVE_EXEMPTION": "effective_exemptions", "VERIFIED_PROTECTED": "verified_protected",
+                    "UNKNOWN_ENFORCEMENT": "unknown_enforcement", "NOT_ENFORCED": "not_enforced",
+                    "NOT_ENFORCEABLE_BY_MECHANISM": "not_enforceable_by_mechanism"}
 
 
 def get_current_coverage(inv: Investigation, inp: ControlScopeInput) -> dict[str, Any]:
-    scope_id = _check_scope(inv, inp.scope_id)
-    inv.control(inp.control_id)
+    control = inv.control(inp.control_id)
+    scope_id = resolve_scope(inv, control, inp.scope_id)
     run = select_run(inv, inp.control_id, scope_id)
     base = {"unit": "resources (one control)", "columns": [{"key": k, "label": label} for k, label in COVERAGE_COLUMNS],
             "denominator": "Known-applicable resources in the latest completed assessment covering this scope; "
@@ -314,7 +344,8 @@ def get_current_coverage(inv: Investigation, inp: ControlScopeInput) -> dict[str
     if run is None:
         return {**base, "available": False, "assessment_run_id": None, "rows": [], "totals": {},
                 "verified_protected_ratio": "N/A",
-                "unavailable_reason": "No completed assessment covers this scope, so coverage is unknown."}
+                "unavailable_reason": NO_SCOPE if scope_id is None else
+                "No completed assessment covers this scope, so coverage is unknown."}
     cov = inv.cached(f"cov:{run.id}", lambda: resource_coverage(inv.ctx, inp.control_id, run))
     states = {p["resource_id"]: p["state"] for p in cov["per_resource"]}
     tree = inv.ctx.tree
@@ -328,8 +359,7 @@ def get_current_coverage(inv: Investigation, inp: ControlScopeInput) -> dict[str
         c[{ConfigurationResult.COMPLIANT: "compliant", ConfigurationResult.NON_COMPLIANT: "non_compliant",
            ConfigurationResult.UNKNOWN: "unknown"}.get(r.configuration_result, "other")] += 1
         state = states.get(r.subject_id)
-        c[{"EFFECTIVE_EXEMPTION": "effective_exemptions", "VERIFIED_PROTECTED": "verified_protected",
-           "UNKNOWN_ENFORCEMENT": "unknown_enforcement", "NOT_ENFORCED": "not_enforced"}.get(state or "", "other")] += 1
+        c[ENFORCEMENT_KEYS.get(state or "", "other")] += 1
     rows, totals = [], Counter()
     for sid in sorted(groups):
         s = tree.scopes.get(sid)
@@ -380,16 +410,17 @@ def _can_run(inv: Investigation, control: m.Control, scope_id: str | None) -> tu
 
 
 def get_impact_assessment(inv: Investigation, inp: ControlScopeInput) -> dict[str, Any]:
-    scope_id = _check_scope(inv, inp.scope_id)
     control = inv.control(inp.control_id)
+    scope_id = resolve_scope(inv, control, inp.scope_id)
     run = select_run(inv, control.id, scope_id)
     can_run, blocked, action = _can_run(inv, control, scope_id)
     base = {"requested_scope_id": scope_id, "can_run": can_run, "run_blocked_reason": blocked,
             "run_action": action, "links": []}
     if run is None:
         return {**base, "available": False,
-                "unavailable_reason": "No completed impact assessment covers this scope. Impact is UNKNOWN until "
-                                      "an assessment runs; the workspace does not estimate it."}
+                "unavailable_reason": NO_SCOPE if scope_id is None else
+                "No completed impact assessment covers this scope. Impact is UNKNOWN until an assessment runs; "
+                "the workspace does not estimate it."}
     filtered = _run_is_filtered(inv, run, scope_id)
     basis_current, notes = _basis(inv, control, run)
     snap = inv.ctx.session.get(m.InventorySnapshot, run.inventory_snapshot_id)
@@ -450,8 +481,8 @@ def get_impact_assessment(inv: Investigation, inp: ControlScopeInput) -> dict[st
 
 
 def get_applicable_resources(inv: Investigation, inp: ResourcesInput) -> dict[str, Any]:
-    scope_id = _check_scope(inv, inp.scope_id)
     control = inv.control(inp.control_id)
+    scope_id = resolve_scope(inv, control, inp.scope_id)
     run = select_run(inv, control.id, scope_id)
     if run is None:
         return {"available": False, "control_id": control.id, "run_id": None, "scope_id": scope_id, "total": 0,
@@ -479,8 +510,8 @@ def get_applicable_resources(inv: Investigation, inp: ResourcesInput) -> dict[st
 
 
 def get_application_readiness(inv: Investigation, inp: ControlScopeInput) -> dict[str, Any]:
-    scope_id = _check_scope(inv, inp.scope_id)
     control = inv.control(inp.control_id)
+    scope_id = resolve_scope(inv, control, inp.scope_id)
     run = select_run(inv, control.id, scope_id)
     fresh = settings.get(inv.ctx.session, "evidence_freshness")
     max_age = timedelta(days=fresh["readiness_max_age_days"])
@@ -488,7 +519,8 @@ def get_application_readiness(inv: Investigation, inp: ControlScopeInput) -> dic
         m.ReadinessEvidence.control_id == control.id).order_by(m.ReadinessEvidence.collected_at.desc()))
     evidence = []
     for e in ev_rows:
-        if not inv.can_read(e.scope_id) or not (_within(inv, e.scope_id, scope_id) or _within(inv, scope_id, e.scope_id)):
+        if scope_id is None or not inv.can_read(e.scope_id) or not (
+                _within(inv, e.scope_id, scope_id) or _within(inv, scope_id, e.scope_id)):
             continue
         v = evidence_view(e)
         evidence.append({"id": v["id"], "application": v["application"], "scope_id": v["scope_id"],
@@ -499,15 +531,19 @@ def get_application_readiness(inv: Investigation, inp: ControlScopeInput) -> dic
             f"{fresh['readiness_max_age_days']} days does not count.")
     if run is None:
         return {"available": False, "run_id": None, "applications": [], "evidence": evidence[:50],
-                "note": note + " No assessment covers this scope, so readiness per resource is UNKNOWN."}
+                "note": note + (" " + NO_SCOPE if scope_id is None else
+                                " No assessment covers this scope, so readiness per resource is UNKNOWN.")}
     by_app: dict[str, dict[str, Any]] = {}
     for r in _result_rows(inv, run, scope_id, "RESOURCE"):
         if r.readiness is None:
             continue
         app = r.application or "(unknown application)"
-        entry = by_app.setdefault(app, {"states": [], "resources": 0})
+        entry = by_app.setdefault(app, {"states": [], "resources": 0, "blocker_ids": set()})
         entry["states"].append(r.readiness)
         entry["resources"] += 1
+        # Run-level blockers are de-duplicated by id, so attribute them through each result's own blocker ids.
+        entry["blocker_ids"].update((r.evidence or {}).get("blockers", []))
+    blocker_by_id = {b["id"]: b for b in run.blockers}
     apps = []
     for app, entry in sorted(by_app.items()):
         states = entry["states"]
@@ -515,17 +551,17 @@ def get_application_readiness(inv: Investigation, inp: ControlScopeInput) -> dic
                      Readiness.UNKNOWN if Readiness.UNKNOWN in states else Readiness.READY)
         blockers = [{"kind": b["kind"], "message": b["message"], "resolution": b["resolution"],
                      "owner_team": b["owner_team"], "scope_id": b.get("scope_id")}
-                    for b in run.blockers
-                    if (b.get("application") or "(unknown application)") == app and inv.can_read(b.get("scope_id"))
-                    and _within(inv, b.get("scope_id"), scope_id)]
+                    for bid in sorted(entry["blocker_ids"]) if (b := blocker_by_id.get(bid)) is not None
+                    and inv.can_read(b.get("scope_id"))
+                    and (_within(inv, b.get("scope_id"), scope_id) or _within(inv, scope_id, b.get("scope_id")))]
         apps.append({"application": app, "readiness": str(readiness), "resources": entry["resources"],
                      "blockers": blockers})
     return {"available": True, "run_id": run.id, "applications": apps, "evidence": evidence[:50], "note": note}
 
 
 def get_exceptions(inv: Investigation, inp: ControlScopeInput) -> dict[str, Any]:
-    scope_id = _check_scope(inv, inp.scope_id)
-    inv.control(inp.control_id)
+    control = inv.control(inp.control_id)
+    scope_id = resolve_scope(inv, control, inp.scope_id)
     warn = settings.get(inv.ctx.session, "expiry")["warning_days"]
     items = []
     rows = inv.ctx.session.scalars(select(m.SecurityException).where(
@@ -534,17 +570,27 @@ def get_exceptions(inv: Investigation, inp: ControlScopeInput) -> dict[str, Any]
     for e in rows:
         if not inv.can_read(e.scope_id):
             continue
-        if scope_id and not (_within(inv, e.scope_id, scope_id) or _within(inv, scope_id, e.scope_id)):
+        if scope_id is None or not (_within(inv, e.scope_id, scope_id) or _within(inv, scope_id, e.scope_id)):
             continue
-        v = exception_view(e, inv.ctx.now, warn, decisions_for(inv.ctx, e.id))
-        items.append({"id": v["id"], "scope_id": v["scope_id"], "application": v["application"],
-                      "granularity": v["granularity"], "resource_ids": v["resource_ids"],
+        items.append(e)
+    total = len(items)
+    # Active and soonest-expiring first; the full list is in Classic.
+    items.sort(key=lambda e: (effective_status(e, inv.ctx.now) in ("EXPIRED", "REVOKED", "REJECTED"),
+                              e.expires_at, e.id))
+    views = []
+    for e in items[:MAX_EXCEPTIONS]:
+        v = exception_view(e, inv.ctx.now, warn)
+        ids = list(dict.fromkeys(v["resource_ids"]))
+        views.append({"id": v["id"], "scope_id": v["scope_id"], "application": v["application"],
+                      "granularity": v["granularity"], "resource_ids": ids[:MAX_IDS_PER_EXCEPTION],
+                      "resource_count": len(ids),
                       "effective_status": v["effective_status"], "native_status": v["native_status"],
                       "disposition": v["disposition"], "representability": v["representability"],
                       "expires_at": v["expires_at"], "days_until_expiry": v["days_until_expiry"],
                       "expiring_soon": v["expiring_soon"], "requester_id": v["requester_id"],
                       "href": f"/exceptions/{v['id']}"})
-    return {"items": items, "counts_by_status": dict(Counter(i["effective_status"] for i in items)),
+    counts = Counter(effective_status(e, inv.ctx.now) for e in items)
+    return {"items": views, "total": total, "truncated": total > len(views), "counts_by_status": dict(counts),
             "note": "Governance status (decision) and native status (exemption in the cloud) are separate. "
                     "An approved exception does not make a failing configuration compliant.",
             "links": [_link("Exceptions in Classic", f"/exceptions?control_id={inp.control_id}")]}
@@ -567,8 +613,9 @@ def get_rollout_status(inv: Investigation, inp: ControlInput) -> dict[str, Any]:
             "note": "No active rollout plan. A rollout draft can be prepared (unsaved) and submitted through the "
                     "governed plan workflow."}
         approval = {"package": None, "required_roles": ["SECURITY_APPROVER", "CLOUD_ENGINEER"], "decisions": [],
-                    "failing_gates": [], "note": "No change package exists yet. Approvals happen only in the Classic "
-                                                 "Experience by two different identities; the workspace never approves."}
+                    "failing_gates": [],
+                    "note": "No change package exists yet. Approvals happen only in the Classic Experience by two "
+                            "different identities; the workspace never approves."}
         handoff = {"bundle": None, "package_status": None,
                    "note": "No handoff bundle. Bundles are exported only from approved change packages; approved or "
                            "exported does not mean deployed."}
@@ -641,20 +688,26 @@ def get_audit_history(inv: Investigation, inp: AuditInput) -> dict[str, Any]:
 # ------------------------------------------------------------------------------------ composer-only views
 
 
+def _clip(value: Any, limit: int) -> str | None:
+    return None if value is None else str(value)[:limit]
+
+
 def policy_diff(inv: Investigation, control_id: str, scope_id: str | None) -> dict[str, Any]:
     control = inv.control(control_id)
+    scope_id = resolve_scope(inv, control, scope_id)
     d = inv.detail(control_id)
     provider = inv.ctx.tree.get(scope_id).provider if scope_id else (control.revisions[-1].providers or [None])[0]
     irev = _latest_impl_revision(control, provider)
     baseline = []
     for b in d["existing_bindings"]:
-        if scope_id and not (_within(inv, scope_id, b["target_scope_id"]) or _within(inv, b["target_scope_id"], scope_id)):
+        if scope_id is None or not (_within(inv, scope_id, b["target_scope_id"])
+                                    or _within(inv, b["target_scope_id"], scope_id)):
             continue
         if irev is not None and b["definition_ref"].lower() != irev.source_ref.lower() and b["provider"] == "azure":
             continue
         s = b["settings"] or {}
-        baseline.append({"binding_id": b["id"], "native_id": b["native_id"], "scope_id": b["target_scope_id"],
-                         "effect": s.get("effect"), "enforcement_mode": s.get("enforcementMode"),
+        baseline.append({"binding_id": b["id"], "native_id": b["native_id"][:512], "scope_id": b["target_scope_id"],
+                         "effect": _clip(s.get("effect"), 64), "enforcement_mode": _clip(s.get("enforcementMode"), 64),
                          "management": b["management"], "origin": b["origin"], "observed_at": b["observed_at"],
                          "provenance": b["evidence_provenance"]})
     proposed, changes = None, []
@@ -670,14 +723,14 @@ def policy_diff(inv: Investigation, control_id: str, scope_id: str | None) -> di
         p_mode = (irev.assignment_settings or {}).get("enforcementMode")
         for b in baseline:
             if p_effect is not None and b["effect"] is not None and str(p_effect) != str(b["effect"]):
-                changes.append({"field": "effect", "scope_id": b["scope_id"], "baseline": str(b["effect"]),
-                                "proposed": str(p_effect)})
+                changes.append({"field": "effect", "scope_id": b["scope_id"], "baseline": _clip(b["effect"], 512),
+                                "proposed": _clip(p_effect, 512)})
             if p_mode is not None and b["enforcement_mode"] is not None and str(p_mode) != str(b["enforcement_mode"]):
                 changes.append({"field": "enforcementMode", "scope_id": b["scope_id"],
-                                "baseline": str(b["enforcement_mode"]), "proposed": str(p_mode)})
+                                "baseline": _clip(b["enforcement_mode"], 512), "proposed": _clip(p_mode, 512)})
         if not baseline:
             changes.append({"field": "assignment", "scope_id": scope_id, "baseline": "none recorded",
-                            "proposed": f"{irev.policy_kind} {irev.source_ref.rsplit('/', 1)[-1]}"})
+                            "proposed": _clip(f"{irev.policy_kind} {irev.source_ref.rsplit('/', 1)[-1]}", 512)})
     run = select_run(inv, control_id, scope_id)
     counts: dict[str, int] = {}
     if run is not None:
@@ -707,6 +760,7 @@ def scope_options(inv: Investigation, provider: str | None, selected: str | None
 
 
 def evidence_panel(inv: Investigation, control_id: str, scope_id: str | None) -> dict[str, Any]:
+    scope_id = resolve_scope(inv, inv.control(control_id), scope_id)
     run = select_run(inv, control_id, scope_id)
     fresh = settings.get(inv.ctx.session, "evidence_freshness")
     sources: list[dict[str, Any]] = []
@@ -746,7 +800,8 @@ def evidence_panel(inv: Investigation, control_id: str, scope_id: str | None) ->
                            "target includes scopes you cannot read."]
     d = inv.detail(control_id)
     for b in d["existing_bindings"]:
-        if scope_id and not (_within(inv, scope_id, b["target_scope_id"]) or _within(inv, b["target_scope_id"], scope_id)):
+        if scope_id is None or not (_within(inv, scope_id, b["target_scope_id"])
+                                    or _within(inv, b["target_scope_id"], scope_id)):
             continue
         sources.append({"kind": "policy_binding", "id": b["id"], "label": b["native_id"].rsplit("/", 1)[-1],
                         "provenance": b["evidence_provenance"], "collected_at": b["observed_at"], "digest": None,
@@ -829,7 +884,8 @@ TOOLS_BY_API_NAME = {t.api_name: t for t in TOOLS}
 TOOLS_BY_NAME = {t.name: t for t in TOOLS}
 
 
-def run_tool(inv: Investigation, api_name: str, raw_input: dict[str, Any], *, allowed_kinds: set[str]) -> dict[str, Any]:
+def run_tool(inv: Investigation, api_name: str, raw_input: dict[str, Any], *,
+             allowed_kinds: set[str]) -> dict[str, Any]:
     """Validate input against the tool's schema and run it with the investigation's principal."""
     tool = TOOLS_BY_API_NAME.get(api_name)
     if tool is None or tool.kind not in allowed_kinds or tool.handler is None:

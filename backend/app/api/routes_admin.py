@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends
-from sqlalchemy import func, or_, select
+from sqlalchemy import select
 
 from app.api.deps import Page, get_ctx, paged
 from app.api.schemas import RoleGrant, SettingUpdate

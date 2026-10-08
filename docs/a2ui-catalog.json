@@ -1404,10 +1404,16 @@
                 "title": "Requester Id",
                 "type": "string"
               },
+              "resource_count": {
+                "default": 0,
+                "title": "Resource Count",
+                "type": "integer"
+              },
               "resource_ids": {
                 "items": {
                   "type": "string"
                 },
+                "maxItems": 10,
                 "title": "Resource Ids",
                 "type": "array"
               },
@@ -1472,6 +1478,7 @@
             "items": {
               "$ref": "#/$defs/ExceptionItem"
             },
+            "maxItems": 100,
             "title": "Items",
             "type": "array"
           },
@@ -1486,6 +1493,16 @@
             "maxLength": 4000,
             "title": "Note",
             "type": "string"
+          },
+          "total": {
+            "default": 0,
+            "title": "Total",
+            "type": "integer"
+          },
+          "truncated": {
+            "default": false,
+            "title": "Truncated",
+            "type": "boolean"
           }
         },
         "required": [

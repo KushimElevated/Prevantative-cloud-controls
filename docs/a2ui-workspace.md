@@ -105,9 +105,13 @@ Every input is validated with a strict pydantic model (unknown fields and malfor
 
 Works without any AI configuration. A small rule set (`backend/app/workspace/intents.py`) picks an intent
 from keywords, a provider / native resource type / environment / application from hints, the control from
-the catalogue (explicit `CTL-…` id, deep-link context, or best match by resource type and words), and the
-scope from the scopes the caller can read (explicit id, or the widest readable scope matching the
-environment/application). Every match is shown in the trace.
+the catalogue (explicit `CTL-…` id, deep-link context, or best match by resource type, implementation
+prerequisites and words; generic words such as "public", "access" or "block" alone never select a control),
+and the scope from the scopes the caller can read, in this order: a scope selected in the Scope selector or a
+deep link, a scope id named in the question, the widest readable scope matching the environment/application
+("pre-production" counts as non-production), else the widest readable scope of the control's provider. A
+control's provider overrides a conflicting provider word in the question. If the caller can read no scope of
+that provider, every view says so instead of showing another scope's results. Every match is shown in the trace.
 
 | Intent | Example | Canvas |
 |---|---|---|
@@ -145,17 +149,26 @@ How it works (`backend/app/workspace/ai/`):
    `strict: true` schemas and `tool_choice: auto`. Each call is validated and executed as the caller, so
    the model sees only what the user may see. Tool results are data; nothing the model writes is executed.
 3. The model must finish with a JSON plan (structured output): control id, scope id, summary,
-   recommendations, which catalog views to show, suggested actions. The plan is validated strictly; an
-   unknown control, an unreadable scope or a view outside the catalog is ignored with a note.
+   recommendations, which catalog views to show, suggested actions. The plan is validated strictly: ids must
+   be well-formed, exist and be readable, a view outside the catalog is ignored, and a control or scope the
+   user named, selected or opened from a deep link is never overridden. Notes about ignored values are fixed
+   sentences; text the model wrote is never echoed outside the labelled summary and recommendations.
 4. The canvas is built by the same deterministic composer, so **every displayed value is authoritative**.
    Only the summary and recommendations come from the model; they are labelled as AI-generated, rendered as
-   plain text, and links in them are removed.
+   plain text, invisible formatting characters (zero-width, bidi overrides) are stripped, and anything that
+   reads as a link or address (any `scheme://`, `javascript:`/`mailto:`-style schemes, protocol-relative
+   `//host`, `www.` and bare web hosts) is replaced with `[link removed]`.
 5. Any failure (not configured, network, refusal, timeout, invalid plan) returns the deterministic
    investigation with a note. Each AI run is audited (`workspace.ai_investigation`: model, tools called,
-   outcome; no credentials).
+   outcome; no credentials). The event is scoped to every scope whose data the run read, so it is visible to
+   the owners of that data and never catalogue-wide.
 
 Model defaults: `claude-opus-5-5`, adaptive thinking (always on for this model; depth set with
-`output_config.effort`), `max_tokens` 16000, one SDK retry, 60 s timeout, at most 8 tool calls.
+`output_config.effort`), `max_tokens` 16000, one SDK retry, 60 s per call, at most 8 tool calls, and an
+overall deadline of 120 s per investigation (`WORKSPACE_AI_DEADLINE_SECONDS`). At most 3 AI investigations
+run at once per API process (`WORKSPACE_AI_MAX_CONCURRENT`); extra requests get the deterministic result
+immediately. The request's database connection is released while waiting on the model, so slow AI calls
+cannot exhaust the pool the Classic Experience uses.
 **Refusal fallbacks are enabled by default** (`fallbacks: "default"` with the
 `server-side-fallback-2026-07-01` beta): if the model's safety classifiers decline a request (security
 topics can trigger this), the API re-runs it on Anthropic's recommended fallback model and the served model
@@ -173,9 +186,14 @@ revision id and digest, the assessment run (and result digest) it relied on, the
 duplicate-control check. Fields that are security decisions (justifications, risk owner, compensating
 controls, severity, objective, prevention boundary) are left for a person to write.
 
-`POST /api/v1/workspace/drafts/submit` requires `confirmed: true`, recomputes the basis and refuses with
-**409 `DRAFT_STALE`** if anything changed, then validates the payload with the existing strict request model
-and calls the existing service function. Change packages, approvals by two independent identities, export,
+`POST /api/v1/workspace/drafts/submit` requires `confirmed: true`. It checks the caller's role first (the same
+403 as the Classic API, before any basis detail is returned), recomputes the basis and refuses with
+**409 `DRAFT_STALE`** if anything changed, re-checks the draft's preconditions and refuses with **409
+`DRAFT_BLOCKED`** (with the reasons) if they no longer hold, then validates the payload with the existing strict
+request model and calls the existing service function. Control proposals collect provider and native resource
+type in the form; their duplicate-control check is recomputed on the server from what is submitted. An active
+rollout plan the caller cannot read is never named. If a draft is refused as stale, "Prepare again" keeps what
+the person already wrote. Change packages, approvals by two independent identities, export,
 delivery and verification remain Classic workflows with their existing gates (including `manifest_current`,
 which already makes approved packages stale when the evidence changes).
 
@@ -198,4 +216,14 @@ which already makes approved packages stale when the evidence changes).
 - AI-assisted mode was exercised with a scripted provider and a stubbed SDK client in tests; it has not
   been run against the live API in this environment (no credentials).
 - Investigations are not persisted; deep links re-run them.
-- One surface per investigation; no streaming of partial canvases.
+- One surface per investigation; no streaming of partial canvases. A view that fails its contract or exceeds
+  the size budget is replaced by a notice pointing to Classic; long exception lists are capped (100 items, 10
+  resource ids each) with the total shown.
+
+## Adversarial review
+
+The feature was reviewed by four independent lenses (authorization and data exposure; injection and rendering;
+governance integrity; correctness and robustness), each followed by a verifier that tried to reproduce or
+refute every finding against the running stack and the test database. 22 findings were confirmed (none
+critical or high; several duplicates), 4 were refuted. All confirmed findings were fixed and have regression
+tests in `backend/tests/test_workspace_review_fixes.py` and `frontend/tests/unit/workspace-review-fixes.test.tsx`.

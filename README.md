@@ -53,7 +53,7 @@ back to the demo days later. `make` targets wrap the same commands (`make up`, `
 ## Tests
 
 ```bash
-docker compose run --rm ops pytest                     # backend: 49 domain + API integration tests on real PostgreSQL
+docker compose run --rm ops pytest                     # backend: 231 domain, API and workspace tests on real PostgreSQL
 cd frontend && npm ci && npx tsc --noEmit && npx vitest run   # frontend type check + component tests
 docker compose run --rm ops python -m app.cli reset && (cd frontend && npx playwright test)   # browser smoke test (stack running)
 ```

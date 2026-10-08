@@ -301,7 +301,8 @@ class ExceptionItem(Contract):
     scope_id: str = Label
     application: str = Label
     granularity: str = Field(max_length=32)
-    resource_ids: list[str]
+    resource_ids: list[str] = Field(max_length=10)
+    resource_count: int = 0
     effective_status: str = Field(max_length=32)
     native_status: str = Field(max_length=32)
     disposition: str = Field(max_length=32)
@@ -314,7 +315,9 @@ class ExceptionItem(Contract):
 
 
 class ExceptionReviewData(Contract):
-    items: list[ExceptionItem]
+    items: list[ExceptionItem] = Field(max_length=100)
+    total: int = 0
+    truncated: bool = False
     counts_by_status: dict[str, int]
     note: str = Text
     links: list[Link]

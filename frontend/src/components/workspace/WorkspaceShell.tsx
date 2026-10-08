@@ -27,6 +27,8 @@ type DraftState = {
   preparing: boolean;
   error: ApiError | null;
   generation: number;
+  /** What the person wrote into the previous version of this draft (kept when it is prepared again). */
+  previousValues: Record<string, string> | null;
 };
 
 const DEFAULT_ASSESSMENT_CONFIRM = "Creates a persisted, audited assessment run through the existing assessment service. "
@@ -63,16 +65,29 @@ export function WorkspaceShell({ start, onInvestigated }: {
 
   const seq = useRef(0);
   const draftSeq = useRef(0);
+  const mounted = useRef(true);
   const onInvestigatedRef = useRef(onInvestigated);
   onInvestigatedRef.current = onInvestigated;
 
+  // Declared before the start effect so a (Strict Mode) remount is marked mounted before it investigates.
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      // Nothing that completes after the person has left may update state or rewrite the URL.
+      mounted.current = false;
+      seq.current += 1;
+      draftSeq.current += 1;
+    };
+  }, []);
+
   const investigate = useCallback(async (request: InvestigationRequest) => {
+    if (!mounted.current) return;
     const mine = ++seq.current;
     setRunning(true);
     setError(null);
     try {
       const result = await runInvestigation(request);
-      if (mine !== seq.current) return;
+      if (mine !== seq.current || !mounted.current) return;
       setInvestigation(result);
       setLastRequest(request);
       onInvestigatedRef.current?.(request);
@@ -118,12 +133,15 @@ export function WorkspaceShell({ start, onInvestigated }: {
     void investigate({ ...lastRequest, control_id: controlId, scope_id: scope });
   }, [lastRequest, investigation, investigate]);
 
-  const prepare = useCallback(async (kind: DraftKind, params: Record<string, unknown>) => {
+  const prepare = useCallback(async (kind: DraftKind, params: Record<string, unknown>,
+                                     previousValues: Record<string, string> | null = null) => {
+    if (!mounted.current) return;
     const mine = ++draftSeq.current;
-    setDraft((d) => ({ kind, params, draft: null, preparing: true, error: null, generation: (d?.generation ?? 0) + 1 }));
+    setDraft((d) => ({ kind, params, draft: null, preparing: true, error: null, previousValues,
+                       generation: (d?.generation ?? 0) + 1 }));
     try {
       const prepared = await prepareDraft(kind, params);
-      if (mine !== draftSeq.current) return;
+      if (mine !== draftSeq.current || !mounted.current) return;
       setDraft((d) => (d ? { ...d, draft: prepared, preparing: false, generation: d.generation + 1 } : d));
     } catch (e) {
       if (mine === draftSeq.current) setDraft((d) => (d ? { ...d, preparing: false, error: e as ApiError } : d));
@@ -227,7 +245,9 @@ export function WorkspaceShell({ start, onInvestigated }: {
           {draft && (
             draft.draft && !draft.preparing ? (
               <DraftPanel key={draft.generation} draft={draft.draft} preparing={draft.preparing}
-                          onPrepareAgain={() => void prepare(draft.kind, draft.params)} onDiscard={discardDraft} />
+                          previousValues={draft.previousValues}
+                          onPrepareAgain={(values) => void prepare(draft.kind, draft.params, values)}
+                          onDiscard={discardDraft} />
             ) : (
               <div data-testid="ws-draft" className="mt-4 rounded-lg border-2 border-dashed border-slate-300 p-3 text-sm dark:border-slate-600">
                 {draft.preparing ? <span role="status">Preparing draft…</span> : (

@@ -25,16 +25,27 @@ const RESOURCE_ID = /^[A-Za-z0-9/][A-Za-z0-9._:/@-]{0,511}$/;
 
 /* ------------------------------------------------------------------ primitives */
 
-const str = (max: number) => z.string().max(max);
-const optStr = (max: number) => z.string().max(max).nullable().optional();
+/** Length in Unicode code points, which is how pydantic and Postgres count (zod's .max() counts UTF-16 units). */
+export function codePoints(s: string): number {
+  return Array.from(s).length;
+}
+
+// A string never has more code points than UTF-16 units, so only long strings need counting.
+const atMost = (max: number) => (s: string) => s.length <= max || codePoints(s) <= max;
+const maxMessage = (max: number) => ({ message: `String must contain at most ${max} character(s)` });
+
+/** A string of at most `max` code points; `min` 1 (non-empty) means the same in code points and UTF-16 units. */
+const str = (max: number, min = 0) =>
+  (min > 0 ? z.string().min(min) : z.string()).refine(atMost(max), maxMessage(max));
+const optStr = (max: number) => str(max).nullable().optional();
 const label = str(256);
 const text = str(4000);
 const int = z.number().int();
 const counts = z.record(z.string(), int);
 const strings = z.array(z.string());
-const href = z.string().max(512).regex(SAFE_HREF);
+const href = z.string().regex(SAFE_HREF).refine(atMost(512), maxMessage(512));
 
-export const LinkSchema = z.object({ label: z.string().min(1).max(120), href });
+export const LinkSchema = z.object({ label: str(120, 1), href });
 export type LinkData = z.infer<typeof LinkSchema>;
 
 /* ------------------------------------------------------------------ data contracts */
@@ -262,6 +273,8 @@ const ExceptionItem = z.object({
   application: label,
   granularity: str(32),
   resource_ids: strings,
+  /** Total resources on the exception; resource_ids is capped by the server. */
+  resource_count: int.nullable().optional(),
   effective_status: str(32),
   native_status: str(32),
   disposition: str(32),
@@ -278,6 +291,8 @@ export const ExceptionReviewData = z.object({
   counts_by_status: counts,
   note: text,
   links: z.array(LinkSchema),
+  total: int.nullable().optional(),
+  truncated: z.boolean().optional().default(false),
 });
 
 const TimelineStage = z.object({
@@ -398,14 +413,14 @@ export function isDomainComponent(name: unknown): name is DomainComponentName {
 /* ------------------------------------------------------------------ component props */
 
 // Schemas handed to the A2UI renderer. DynamicValue lets the binder resolve {path} to the bound view.
-export const DomainProps = z.object({ title: z.string().min(1).max(120), data: CommonSchemas.DynamicValue }).strict();
+export const DomainProps = z.object({ title: str(120, 1), data: CommonSchemas.DynamicValue }).strict();
 export const CanvasStackProps = z.object({ children: CommonSchemas.ChildList }).strict();
 export const NoticeTone = z.enum(["info", "warning", "critical"]);
-export const CanvasNoticeProps = z.object({ tone: NoticeTone, text: z.string().min(1).max(1000) }).strict();
+export const CanvasNoticeProps = z.object({ tone: NoticeTone, text: str(1000, 1) }).strict();
 
 // Stricter wire shapes checked before anything reaches the processor (mirrors the pydantic props models).
 const DomainWireProps = z.object({
-  title: z.string().min(1).max(120),
+  title: str(120, 1),
   data: z.object({ path: z.string().regex(DATA_PATH) }).strict(),
 }).strict();
 const CanvasStackWireProps = z.object({ children: z.array(z.string().regex(COMPONENT_ID)).min(1).max(40) }).strict();

@@ -8,8 +8,9 @@ and adds a summary and recommendations; it never carries data that the canvas di
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from typing import Any, Callable, Protocol
+from typing import Any, Protocol
 
 from app.workspace.catalog import DOMAIN_COMPONENTS
 

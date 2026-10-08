@@ -10,16 +10,25 @@ Findings are generated from tool outputs only and carry a kind:
 
 from __future__ import annotations
 
+import json
+import logging
 import secrets
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
+
+from pydantic import ValidationError
 
 from app.core.clock import iso
 from app.core.errors import DomainError
 from app.models.enums import Role
 from app.workspace import tools as t
-from app.workspace.a2ui import build_surface, validate_messages
+from app.workspace.a2ui import A2uiValidationError, build_surface, validate_messages
 from app.workspace.catalog import CATALOG_ID, DOMAIN_COMPONENTS, PROTOCOL_VERSION
 from app.workspace.intents import INTENTS, Interpretation
+
+log = logging.getLogger("ccp.workspace")
+VIEW_BUDGET_BYTES = 400_000
+MIN_PROBLEM_STATEMENT = 10
 
 TITLES = {
     "ControlSummary": "Control and security intent",
@@ -62,9 +71,10 @@ def _count_text(counts: dict[str, int], labels: dict[str, str]) -> str:
 
 
 class Composer:
-    def __init__(self, inv: t.Investigation, interpretation: Interpretation):
+    def __init__(self, inv: t.Investigation, interpretation: Interpretation, question: str = ""):
         self.inv = inv
         self.it = interpretation
+        self.question = question
         self.steps: list[dict[str, Any]] = []
         self.views: dict[str, Any] = {}
         self.findings: list[dict[str, Any]] = []
@@ -80,9 +90,15 @@ class Composer:
         return out
 
     def build_views(self, components: list[str]) -> None:
-        cid, sid, inv = self.it.control_id, self.it.scope_id, self.inv
+        cid, inv = self.it.control_id, self.inv
         if cid is None:
             return
+        if self.it.scope_id is None:
+            self.it.scope_id = t.resolve_scope(inv, inv.control(cid), None)
+            if self.it.scope_id is not None:
+                self.it.scope_reason = "widest readable scope of the control's provider"
+                self.it.provider = inv.ctx.tree.scopes[self.it.scope_id].provider
+        sid = self.it.scope_id
         scope_inp = t.ControlScopeInput(control_id=cid, scope_id=sid)
         needed = set(components) | {"ControlSummary", "ImpactAssessment"}
         if "ControlSummary" in needed:
@@ -146,7 +162,7 @@ class Composer:
             src = ("assessment_run", imp["run_id"], f"/assessments/{imp['run_id']}")
             demo = " (demo fixture inventory)" if imp.get("data_provenance") == "FIXTURE" else ""
             cfg = imp["configuration"] or {}
-            where = sid or imp["target_scope_id"]
+            where = imp["requested_scope_id"]
             f.append(_finding("EVIDENCE", f"Assessment {imp['run_id']} evaluated {imp['total_resources']} resource(s) "
                                           f"in {where}{demo}: " + _count_text(cfg, {
                                               "COMPLIANT": "compliant", "NON_COMPLIANT": "non-compliant",
@@ -162,10 +178,10 @@ class Composer:
                     + ". An exception does not make a failing configuration compliant.", *src))
             req = imp.get("request_impact")
             if req and req["evidence_present"] and req["counts"] is not None:
+                labels = {"PREDICTED_DENIED": "would be denied",
+                          "NOT_DENIED_BY_THIS_CONTROL": "not denied by this control", "UNKNOWN": "unknown"}
                 f.append(_finding("ESTIMATE", f"Of {req['total']} supplied representative request(s), "
-                                  + _count_text(req["counts"], {"PREDICTED_DENIED": "would be denied",
-                                                                "NOT_DENIED_BY_THIS_CONTROL": "not denied by this control",
-                                                                "UNKNOWN": "unknown"})
+                                  + _count_text(req["counts"], labels)
                                   + ". Requests that were not supplied are not predicted.", *src))
             else:
                 f.append(_finding("UNKNOWN", "No representative request evidence covers this scope: potentially "
@@ -261,8 +277,11 @@ class Composer:
         else:
             actions.append({
                 "id": "prepare_control_draft", "kind": "draft", "label": "Prepare control proposal draft",
-                "enabled": p.has_role(Role.CONTROL_ENGINEER),
-                "reason": None if p.has_role(Role.CONTROL_ENGINEER) else "Requires CONTROL_ENGINEER.",
+                "enabled": p.has_role(Role.CONTROL_ENGINEER) and len(self.question.strip()) >= MIN_PROBLEM_STATEMENT,
+                "reason": "Requires CONTROL_ENGINEER." if not p.has_role(Role.CONTROL_ENGINEER) else (
+                    None if len(self.question.strip()) >= MIN_PROBLEM_STATEMENT else
+                    f"Describe the problem in at least {MIN_PROBLEM_STATEMENT} characters; the question becomes the "
+                    "proposal's problem statement."),
                 "params": {"provider": self.it.provider, "resource_type": self.it.resource_type}, "confirm": None,
             })
         links = []
@@ -298,19 +317,37 @@ class Composer:
             return "No catalogued control matches this question."
         imp = self.views.get("impact")
         if not imp or not imp["available"]:
-            return f"{cid} at {sid or 'no readable scope'}: no completed assessment covers this scope, so impact is unknown."
+            if sid is None:
+                return f"{cid}: you cannot read any scope of this control's provider, so there is nothing to assess."
+            return f"{cid} at {sid}: no completed assessment covers this scope, so impact is unknown."
         cfg = imp["configuration"] or {}
-        return (f"{cid} at {sid or imp['target_scope_id']}: {cfg.get('NON_COMPLIANT', 0)} non-compliant, "
+        return (f"{cid} at {imp['requested_scope_id']}: {cfg.get('NON_COMPLIANT', 0)} non-compliant, "
                 f"{cfg.get('COMPLIANT', 0)} compliant and {cfg.get('UNKNOWN', 0)} unknown of "
                 f"{imp['total_resources']} evaluated resource(s), from assessment {imp['run_id']}.")
 
     def surface(self, components: list[str]) -> dict[str, Any]:
         surface_id = f"ws-{secrets.token_hex(6)}"
-        sections, notices = [], []
+        sections, notices, degraded = [], [], []
+        budget = VIEW_BUDGET_BYTES
         for comp in components:
             key = VIEW_KEYS[comp]
-            if self.views.get(key) is not None:
-                sections.append({"component": comp, "title": TITLES[comp], "view": key})
+            view = self.views.get(key)
+            if view is None:
+                continue
+            # One oversized or contract-violating view must not take the whole investigation down.
+            try:
+                DOMAIN_COMPONENTS[comp].model_validate(view)
+                size = len(json.dumps(view, allow_nan=False, default=str))
+            except (ValidationError, ValueError):
+                degraded.append(f"{TITLES[comp]} could not be shown because its data failed validation.")
+                continue
+            if size > budget:
+                degraded.append(f"{TITLES[comp]} is too large to show here.")
+                continue
+            budget -= size
+            sections.append({"component": comp, "title": TITLES[comp], "view": key})
+        for text in degraded:
+            notices.append({"tone": "warning", "text": f"{text} Open it in the Classic Experience."})
         if self.it.control_id is None:
             notices.append({"tone": "info", "text": "No catalogued control matches this question. Use the actions "
                                                     "panel to prepare a control proposal draft, or rephrase."})
@@ -323,7 +360,13 @@ class Composer:
                                                     "fixtures or mock data."})
         if not sections and not notices:
             notices.append({"tone": "info", "text": "Nothing to show for this question."})
-        messages = validate_messages(build_surface(surface_id, sections, self.views, notices))
+        try:
+            messages = validate_messages(build_surface(surface_id, sections, self.views, notices))
+        except A2uiValidationError:
+            log.exception("workspace surface failed validation; returning a notice-only surface")
+            messages = validate_messages(build_surface(surface_id, [], {}, [{
+                "tone": "critical", "text": "The canvas for this investigation could not be built. The findings on the "
+                                            "left are unaffected; open the control in the Classic Experience."}]))
         return {"protocol_version": PROTOCOL_VERSION, "catalog_id": CATALOG_ID, "surface_id": surface_id,
                 "messages": messages}
 
@@ -331,7 +374,7 @@ class Composer:
 def compose(inv: t.Investigation, question: str, interpretation: Interpretation,
             components: list[str] | None = None) -> dict[str, Any]:
     comps = [c for c in (components or INTENTS[interpretation.intent]["views"]) if c in DOMAIN_COMPONENTS]
-    c = Composer(inv, interpretation)
+    c = Composer(inv, interpretation, question)
     c.steps.append({"tool": "interpret", "label": "Interpret the question (deterministic rules)", "status": "ok",
                     "detail": f"intent {interpretation.intent}; matched {interpretation.matched or ['(default)']}"})
     if interpretation.control_id is None:

@@ -45,8 +45,9 @@ plus the optional A2UI-powered **AI Control Workspace** (increment 5, below).
 | Live deployment refused | `docker compose run --rm -e ENABLE_LIVE_DEPLOYMENT=true backend` | startup failed with `ConfigurationError` |
 | Non-local demo auth refused | `-e APP_ENV=production` / `-e AUTH_MODE=oidc` with `check-config` | exit 2 with explicit messages |
 | Reconciliation idempotency | `make reconcile` twice | first run: 2 expired, 1 removal handoff, 1 cleanup item; second run: no changes |
-| Workspace backend tests (local PostgreSQL 16) | `cd backend && .venv/bin/pytest -q` | **199 passed** (49 existing + 150 workspace: validator, deterministic, AI with scripted provider and stubbed SDK client, hardening) |
-| Workspace frontend | `npx tsc --noEmit`; `npx vitest run`; `npx next build` | passed; **77** unit tests (10 existing + 67 workspace); `/workspace` builds with the renderer in a separate client-only chunk |
+| Workspace backend tests (local PostgreSQL 16) | `cd backend && .venv/bin/pytest -q` | **231 passed** (49 existing + 182 workspace: validator, deterministic, AI with scripted provider and stubbed SDK client, hardening, review regressions) |
+| Workspace frontend | `npx tsc --noEmit`; `npx vitest run`; `npx next build` | passed; **85** unit tests (10 existing + 75 workspace); `/workspace` builds with the renderer in a separate client-only chunk |
+| Adversarial review | 4 lens reviewers + 4 verifiers over the feature diff | 22 confirmed findings (0 critical/high), 4 refuted; all fixed with regression tests, then every suite above re-run |
 | Browser journeys (local API + `next start`, after `reset`) | `npx playwright test` | **4 passed**: Classic journey, workspace selector/investigation/scope/deep links, confirmed assessment from the workspace, scoped requester exception draft |
 | Flag off | API with `ENABLE_A2UI_WORKSPACE=false` | Classic journey passed; no nav entry, selector or deep link; `/workspace` shows the disabled notice; `/api/v1/workspace/*` returns 404 |
 
@@ -62,6 +63,17 @@ Workspace increment:
   are now recomputed on the server (409 `DRAFT_BLOCKED`).
 - Safe-link pattern accepted `.`/`..` path segments; rejected on both sides.
 - Transitive `dompurify` 3.4.11 (via `@a2ui/markdown-it`) had advisories; overridden to 3.4.16.
+- From the adversarial review: an oversized or contract-violating view returned HTTP 500 (now degraded to a
+  notice); a user with no readable scope of the control's provider saw another scope's run as evidence;
+  account-level readiness blockers were attributed to one application; the coverage matrix dropped
+  "not enforceable by mechanism" resources; a selected scope lost to one named in the question; the readiness
+  example question matched no control and generic words matched the wrong one; "pre-production" meant
+  production; rollout drafts could name a plan the caller cannot read; AI audit events were scoped to the
+  pre-AI scope; the model could override the user's chosen scope or control and its ids were echoed into
+  notes; link stripping was bypassable; slow AI calls could hold every pooled connection; client contracts
+  counted UTF-16 units instead of code points; untagged-resource exception drafts and control drafts could
+  not be completed; "Prepare again" discarded typed values; a late response after leaving the workspace
+  navigated back to it.
 
 Core MVP:
 

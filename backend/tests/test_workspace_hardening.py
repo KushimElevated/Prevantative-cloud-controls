@@ -6,13 +6,13 @@ from __future__ import annotations
 import re
 
 import pytest
+from journey import AZ_CONTROL, AZ_IMPL_REV, assess
+from test_workspace import QUESTION, investigate, views
+from test_workspace_ai import plan
 
 from app.workspace.a2ui import A2uiValidationError, build_surface, validate_messages
 from app.workspace.ai.scripted import ScriptedProvider
 from app.workspace.catalog import SAFE_HREF
-from journey import AZ_CONTROL, AZ_IMPL_REV, assess
-from test_workspace import QUESTION, investigate, views
-from test_workspace_ai import plan
 
 
 @pytest.fixture
@@ -52,7 +52,7 @@ def test_control_named_in_question_is_not_overridden_by_the_model(app, ws):
     assert out["mode"] == "ai"
     assert out["intent"]["entities"]["control_id"] == AZ_CONTROL
     assert views(out)["control"]["control_id"] == AZ_CONTROL
-    assert "Kept CTL-AZ-SEARCH-PNA" in (out["mode_note"] or "")
+    assert "Kept the control you named or opened" in (out["mode_note"] or "")
 
 
 def test_ai_audit_without_scope_is_never_catalogue_level(app, ws):
@@ -89,11 +89,19 @@ def test_rollout_draft_blockers_are_enforced_on_submit(ws):
     assert ws.get("cara", f"/rollout-plans?control_id={AZ_CONTROL}", expected=200).json()["total"] == 0
 
 
-def test_control_draft_without_provider_or_type_cannot_be_submitted(ws):
+def test_control_draft_collects_provider_and_type_in_the_form(ws):
     draft = ws.post("cara", "/workspace/drafts/prepare", {"kind": "control", "params": {
-        "problem_statement": "Something should never be publicly reachable."}}, expected=200).json()
-    assert draft["can_submit"] is False
-    assert any("provider" in b for b in draft["blocking_reasons"])
+        "problem_statement": "Key vault purge protection must always be enabled."}}, expected=200).json()
+    assert draft["can_submit"] is True
+    assert {"providers", "resource_types"} <= set(draft["required_fields"])
+    payload = {**draft["payload"], "id": "CTL-AZ-KV-PURGE", "name": "Key Vault purge protection",
+               "providers": ["azure"], "resource_types": ["Microsoft.KeyVault/vaults"],
+               "security_objective": "Deleted vaults stay recoverable.", "rationale": "Ransomware resilience.",
+               "applicability_criteria": "All vaults.", "security_owner": "Cloud Security",
+               "engineering_owner": "Cloud Engineering", "prevention_boundary": "Create/update via ARM."}
+    out = ws.post("cara", "/workspace/drafts/submit", {"kind": "control", "basis": draft["basis"],
+                                                        "payload": payload, "confirmed": True}, expected=201).json()
+    assert out["created"]["id"] == "CTL-AZ-KV-PURGE"
 
 
 def test_headline_question_still_matches_after_stopwords(ws):

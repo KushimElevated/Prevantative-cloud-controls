@@ -16,12 +16,18 @@ type Field = {
   hint?: string;
   options?: { value: string; label: string }[];
   type?: "date";
+  /** The payload key this field fills when it differs from `key` (a single value sent as a one-item list). */
+  fills?: string;
+  /** Shown only when the prepared draft asks for it. */
+  onlyWhen?: (draft: Draft) => boolean;
 };
 
 const SEVERITIES = ["CRITICAL", "HIGH", "MEDIUM", "LOW"].map((v) => ({ value: v, label: humanize(v) }));
 
 const FIELDS: Record<Draft["kind"], Field[]> = {
   exception: [
+    { key: "application", label: "Application", hint: "The resource has no application tag; name the application this exception is for.",
+      onlyWhen: (d) => d.required_fields.includes("application") },
     { key: "business_justification", label: "Business justification", multiline: true, minLength: 20 },
     { key: "technical_justification", label: "Technical justification", multiline: true, minLength: 20 },
     { key: "risk_owner", label: "Risk owner" },
@@ -38,8 +44,9 @@ const FIELDS: Record<Draft["kind"], Field[]> = {
     { key: "security_owner", label: "Security owner" },
     { key: "engineering_owner", label: "Engineering owner" },
     { key: "prevention_boundary", label: "Prevention boundary", multiline: true },
-    { key: "provider", label: "Provider", options: [{ value: "", label: "Select provider" }, { value: "azure", label: "Azure" }, { value: "aws", label: "AWS" }] },
-    { key: "resource_type", label: "Native resource type", hint: "e.g. Microsoft.KeyVault/vaults" },
+    { key: "provider", label: "Provider", fills: "providers",
+      options: [{ value: "", label: "Select provider" }, { value: "azure", label: "Azure" }, { value: "aws", label: "AWS" }] },
+    { key: "resource_type", label: "Native resource type", hint: "e.g. Microsoft.KeyVault/vaults", fills: "resource_types" },
   ],
   rollout_plan: [],
 };
@@ -48,10 +55,14 @@ const KIND_LABEL: Record<Draft["kind"], string> = {
   exception: "Exception request", rollout_plan: "Rollout plan", control: "Control proposal",
 };
 
-function initialValues(draft: Draft): Record<string, string> {
+/** The form fields this draft shows. */
+const fieldsFor = (draft: Draft) => FIELDS[draft.kind].filter((f) => !f.onlyWhen || f.onlyWhen(draft));
+
+function preparedValues(draft: Draft): Record<string, string> {
   const p = draft.payload;
   if (draft.kind === "exception") {
     return {
+      application: typeof p.application === "string" ? p.application : "",
       business_justification: p.business_justification ?? "",
       technical_justification: p.technical_justification ?? "",
       risk_owner: p.risk_owner ?? "",
@@ -69,18 +80,31 @@ function initialValues(draft: Draft): Record<string, string> {
   return {};
 }
 
+/**
+ * Values for a freshly prepared draft. What the person already wrote into an earlier version of the same draft
+ * (for example before it was refused as stale) wins over the server's suggestion; nothing else is carried over.
+ */
+function initialValues(draft: Draft, previous?: Record<string, string> | null): Record<string, string> {
+  const v = preparedValues(draft);
+  for (const f of FIELDS[draft.kind]) {
+    const typed = previous?.[f.key];
+    if (typeof typed === "string" && typed.trim()) v[f.key] = typed;
+  }
+  return v;
+}
+
 const lines = (s: string) => s.split("\n").map((l) => l.trim()).filter(Boolean);
 
-function missingFields(draft: Draft, values: Record<string, string>): string[] {
-  const fields = FIELDS[draft.kind];
+function missingFields(draft: Draft, values: Record<string, string>, payload: Record<string, unknown>): string[] {
+  const fields = fieldsFor(draft);
   const editable = fields.filter((f) => {
     const v = (values[f.key] ?? "").trim();
     if (f.key === "compensating_controls") return lines(v).length === 0;
     return v.length < (f.minLength ?? 1);
   }).map((f) => f.label);
-  // Server-declared required fields this form cannot edit must already be filled in the prepared payload.
-  const fixed = draft.required_fields.filter((k) => !fields.some((f) => f.key === k)).filter((k) => {
-    const v = draft.payload[k];
+  // Server-declared required fields this form does not edit must already be filled in the payload it submits.
+  const fixed = draft.required_fields.filter((k) => !fields.some((f) => f.key === k || f.fills === k)).filter((k) => {
+    const v = payload[k];
     return v === null || v === undefined || v === "" || (Array.isArray(v) && v.length === 0);
   }).map(humanize);
   return [...editable, ...fixed];
@@ -94,8 +118,10 @@ function buildPayload(draft: Draft, values: Record<string, string>): Record<stri
     const expires = original && original.slice(0, 10) === values.expires_at
       ? original
       : `${values.expires_at}${original ? original.slice(10) : "T00:00:00Z"}`;
+    const application = fieldsFor(draft).some((f) => f.key === "application") ? { application: values.application.trim() } : {};
     return {
       ...p,
+      ...application,
       business_justification: values.business_justification.trim(),
       technical_justification: values.technical_justification.trim(),
       risk_owner: values.risk_owner.trim(),
@@ -186,6 +212,13 @@ function Preview({ draft }: { draft: Draft }) {
   return <Block title="Preview"><CodeBlock value={pv} maxHeight="12rem" /></Block>;
 }
 
+/** The reasons a DRAFT_BLOCKED refusal carries, or its message when it lists none. */
+function blockingReasons(error: ApiError): string[] {
+  const reasons = (error.details as { blocking_reasons?: unknown } | null | undefined)?.blocking_reasons;
+  const listed = Array.isArray(reasons) ? reasons.filter((r): r is string => typeof r === "string" && r.length > 0) : [];
+  return listed.length ? listed : [error.message];
+}
+
 function confirmSummary(draft: Draft, payload: Record<string, any>): string {
   if (draft.kind === "exception") {
     return `A REQUESTED exception for ${(payload.resource_ids ?? []).join(", ")} at ${payload.scope_id}, expiring ${payload.expires_at}. A security approver decides it.`;
@@ -198,20 +231,27 @@ function confirmSummary(draft: Draft, payload: Record<string, any>): string {
  * Review and submit a guided draft. Drafts are unsaved until the person confirms; submission goes through
  * the existing governed service and is refused as DRAFT_STALE when the platform state has moved on.
  */
-export function DraftPanel({ draft, onPrepareAgain, onDiscard, preparing = false }: {
-  draft: Draft; onPrepareAgain: () => void; onDiscard: () => void; preparing?: boolean;
+export function DraftPanel({ draft, previousValues, onPrepareAgain, onDiscard, preparing = false }: {
+  draft: Draft;
+  /** What the person wrote into the previous version of this draft; kept when it is prepared again. */
+  previousValues?: Record<string, string> | null;
+  /** Prepares the draft again, handing back what the person has written so far. */
+  onPrepareAgain: (values: Record<string, string>) => void;
+  onDiscard: () => void;
+  preparing?: boolean;
 }) {
-  const [values, setValues] = useState(() => initialValues(draft));
+  const [values, setValues] = useState(() => initialValues(draft, previousValues));
   const [confirming, setConfirming] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<ApiError | null>(null);
   const [result, setResult] = useState<DraftSubmitResult | null>(null);
 
-  const fields = FIELDS[draft.kind];
-  const missing = missingFields(draft, values);
-  const stale = error?.code === "DRAFT_STALE";
-  const canReview = draft.can_submit && missing.length === 0 && !submitting && !result && !stale;
+  const fields = fieldsFor(draft);
   const payload = buildPayload(draft, values);
+  const missing = missingFields(draft, values, payload);
+  const stale = error?.code === "DRAFT_STALE";
+  const blocked = error?.code === "DRAFT_BLOCKED" ? blockingReasons(error) : null;
+  const canReview = draft.can_submit && missing.length === 0 && !submitting && !result && !stale;
 
   const submit = async () => {
     setSubmitting(true);
@@ -309,14 +349,23 @@ export function DraftPanel({ draft, onPrepareAgain, onDiscard, preparing = false
                 <p className="mt-1">{error?.message}</p>
                 {changed.length > 0 && <p className="mt-1 text-xs">Changed since it was prepared: {changed.join(", ")}</p>}
                 <div className="mt-2">
-                  <Button onClick={onPrepareAgain} disabled={preparing} testId="ws-draft-prepare-again">
+                  <Button onClick={() => onPrepareAgain(values)} disabled={preparing} testId="ws-draft-prepare-again">
                     {preparing ? "Preparing…" : "Prepare again"}
                   </Button>
                 </div>
               </Notice>
             </div>
           )}
-          {!stale && <ErrorBox error={error} />}
+          {blocked && (
+            <div className="mt-3" data-testid="ws-draft-blocked">
+              <Notice tone="warning">
+                <div className="font-medium"><span aria-hidden="true">! </span>The platform refused this draft</div>
+                <ul className="mt-1 list-disc pl-5">{blocked.map((r, i) => <li key={i}>{r}</li>)}</ul>
+                <p className="mt-1 text-xs">What you wrote is kept. Change the draft and submit again, or discard it.</p>
+              </Notice>
+            </div>
+          )}
+          {!stale && !blocked && <ErrorBox error={error} />}
 
           {missing.length > 0 && draft.can_submit && (
             <p className="mt-2 text-xs text-slate-600 dark:text-slate-300" data-testid="ws-draft-missing">Still required: {missing.join(", ")}.</p>
