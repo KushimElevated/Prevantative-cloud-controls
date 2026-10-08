@@ -1,0 +1,233 @@
+"""Domain enumerations. Stored as strings so the schema stays readable."""
+
+from __future__ import annotations
+
+from enum import StrEnum
+
+
+class Role(StrEnum):
+    VIEWER = "VIEWER"
+    CONTROL_ENGINEER = "CONTROL_ENGINEER"
+    EXCEPTION_REQUESTER = "EXCEPTION_REQUESTER"
+    SECURITY_APPROVER = "SECURITY_APPROVER"
+    CLOUD_ENGINEER = "CLOUD_ENGINEER"
+    ADMIN = "ADMIN"
+
+
+class Provider(StrEnum):
+    AZURE = "azure"
+    AWS = "aws"
+
+
+class ScopeType(StrEnum):
+    AWS_ROOT = "AWS_ROOT"
+    AWS_OU = "AWS_OU"
+    AWS_ACCOUNT = "AWS_ACCOUNT"
+    AZURE_MANAGEMENT_GROUP = "AZURE_MANAGEMENT_GROUP"
+    AZURE_SUBSCRIPTION = "AZURE_SUBSCRIPTION"
+    AZURE_RESOURCE_GROUP = "AZURE_RESOURCE_GROUP"
+
+
+class ControlOrigin(StrEnum):
+    PROPOSED = "PROPOSED"
+    IMPORTED = "IMPORTED"
+    EXTERNALLY_MANAGED = "EXTERNALLY_MANAGED"
+
+
+class RevisionStatus(StrEnum):
+    DRAFT = "DRAFT"
+    IN_REVIEW = "IN_REVIEW"
+    APPROVED = "APPROVED"
+    SUPERSEDED = "SUPERSEDED"
+    RETIRED = "RETIRED"
+
+
+class Severity(StrEnum):
+    CRITICAL = "CRITICAL"
+    HIGH = "HIGH"
+    MEDIUM = "MEDIUM"
+    LOW = "LOW"
+
+
+class ValidationOutcome(StrEnum):
+    PASS = "PASS"
+    FAIL = "FAIL"
+    UNSUPPORTED = "UNSUPPORTED"
+    REQUIRES_DIFFERENT_MECHANISM = "REQUIRES_DIFFERENT_MECHANISM"
+
+
+class VerificationStatus(StrEnum):
+    VERIFIED_PRIMARY_SOURCE = "VERIFIED_PRIMARY_SOURCE"
+    UNVERIFIED = "UNVERIFIED"
+
+
+class Provenance(StrEnum):
+    FIXTURE = "FIXTURE"
+    MOCK_PIPELINE = "MOCK_PIPELINE"
+    MANUAL = "MANUAL"
+    LIVE = "LIVE"
+
+
+class ConfigurationResult(StrEnum):
+    COMPLIANT = "COMPLIANT"
+    NON_COMPLIANT = "NON_COMPLIANT"
+    UNKNOWN = "UNKNOWN"
+    NOT_APPLICABLE = "NOT_APPLICABLE"
+
+
+class Applicability(StrEnum):
+    APPLICABLE = "APPLICABLE"
+    NOT_APPLICABLE = "NOT_APPLICABLE"
+    UNKNOWN = "UNKNOWN"
+
+
+class ExceptionDisposition(StrEnum):
+    NONE = "NONE"
+    PENDING = "PENDING"
+    APPROVED_UNAPPLIED = "APPROVED_UNAPPLIED"
+    EFFECTIVE = "EFFECTIVE"
+    EXPIRED = "EXPIRED"
+    UNSUPPORTED = "UNSUPPORTED"
+
+
+class RequestImpact(StrEnum):
+    PREDICTED_DENIED = "PREDICTED_DENIED"
+    NOT_DENIED_BY_THIS_CONTROL = "NOT_DENIED_BY_THIS_CONTROL"
+    UNKNOWN = "UNKNOWN"
+
+
+class Readiness(StrEnum):
+    READY = "READY"
+    BLOCKED = "BLOCKED"
+    UNKNOWN = "UNKNOWN"
+
+
+class EvidenceStatus(StrEnum):
+    SATISFIED = "SATISFIED"
+    NOT_SATISFIED = "NOT_SATISFIED"
+    UNKNOWN = "UNKNOWN"
+
+
+class AssessmentStatus(StrEnum):
+    COMPLETED = "COMPLETED"
+    UNSUPPORTED = "UNSUPPORTED"
+
+
+class ExceptionStatus(StrEnum):
+    REQUESTED = "REQUESTED"
+    SECURITY_REVIEW = "SECURITY_REVIEW"
+    APPROVED = "APPROVED"
+    REJECTED = "REJECTED"
+    EXPIRED = "EXPIRED"
+    REVOKED = "REVOKED"
+
+
+class NativeStatus(StrEnum):
+    NOT_REQUESTED = "NOT_REQUESTED"
+    PENDING = "PENDING"
+    APPLIED = "APPLIED"
+    FAILED = "FAILED"
+    REMOVAL_PENDING = "REMOVAL_PENDING"
+    UNKNOWN = "UNKNOWN"
+
+
+class Representability(StrEnum):
+    REPRESENTABLE = "REPRESENTABLE"
+    UNSUPPORTED = "UNSUPPORTED"
+    REQUIRES_DIFFERENT_MECHANISM = "REQUIRES_DIFFERENT_MECHANISM"
+
+
+class ExceptionGranularity(StrEnum):
+    RESOURCE = "RESOURCE"
+    SCOPE = "SCOPE"
+    PRINCIPAL = "PRINCIPAL"
+
+
+class RolloutStage(StrEnum):
+    ASSESSMENT = "ASSESSMENT"
+    OBSERVATION = "OBSERVATION"
+    PILOT = "PILOT"
+    LIMITED = "LIMITED"
+    BROAD = "BROAD"
+
+
+STAGE_ORDER = [
+    RolloutStage.ASSESSMENT,
+    RolloutStage.OBSERVATION,
+    RolloutStage.PILOT,
+    RolloutStage.LIMITED,
+    RolloutStage.BROAD,
+]
+
+
+class PlanState(StrEnum):
+    ACTIVE = "ACTIVE"
+    PAUSED = "PAUSED"
+    CANCELLED = "CANCELLED"
+
+
+class PackageStatus(StrEnum):
+    IN_REVIEW = "IN_REVIEW"
+    APPROVED = "APPROVED"
+    REJECTED = "REJECTED"
+    SUPERSEDED = "SUPERSEDED"
+    STALE = "STALE"
+
+
+class DecisionValue(StrEnum):
+    APPROVE = "APPROVE"
+    REJECT = "REJECT"
+    REVOKE = "REVOKE"
+
+
+class BundleKind(StrEnum):
+    DRAFT_UNAPPROVED = "DRAFT_UNAPPROVED"
+    APPROVED_HANDOFF = "APPROVED_HANDOFF"
+
+
+class DeliveryState(StrEnum):
+    NOT_EXPORTED = "NOT_EXPORTED"
+    EXPORTED = "EXPORTED"
+    ACCEPTED = "ACCEPTED"
+    APPLIED = "APPLIED"
+    VERIFIED = "VERIFIED"
+    FAILED = "FAILED"
+    DRIFTED = "DRIFTED"
+
+
+class ReceiptResult(StrEnum):
+    ACCEPTED = "ACCEPTED"
+    APPLIED = "APPLIED"
+    FAILED = "FAILED"
+
+
+class ReceiptValidation(StrEnum):
+    VALID = "VALID"
+    DUPLICATE = "DUPLICATE"
+    OUT_OF_ORDER = "OUT_OF_ORDER"
+    STALE = "STALE"
+    REJECTED_DIGEST_MISMATCH = "REJECTED_DIGEST_MISMATCH"
+    REJECTED_SCOPE_MISMATCH = "REJECTED_SCOPE_MISMATCH"
+    REJECTED_NOT_AUTHORIZED = "REJECTED_NOT_AUTHORIZED"
+
+
+class ComparisonResult(StrEnum):
+    MATCH = "MATCH"
+    MISMATCH = "MISMATCH"
+    MISSING = "MISSING"
+
+
+class WorkKind(StrEnum):
+    REMEDIATION = "REMEDIATION"
+    READINESS = "READINESS"
+    EXEMPTION_REMOVAL = "EXEMPTION_REMOVAL"
+    EXEMPTION_CLEANUP = "EXEMPTION_CLEANUP"
+    RENEWAL_REVIEW = "RENEWAL_REVIEW"
+    DRIFT = "DRIFT"
+    VERIFICATION_STALE = "VERIFICATION_STALE"
+    DELIVERY_FAILURE = "DELIVERY_FAILURE"
+
+
+class WorkStatus(StrEnum):
+    OPEN = "OPEN"
+    CLOSED = "CLOSED"
