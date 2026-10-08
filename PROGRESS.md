@@ -1,6 +1,7 @@
 # Progress
 
-Status as of 2026-10-08: all four planned increments are implemented and were executed in this environment.
+Status as of 2026-10-08: all four planned increments are implemented and were executed in this environment,
+plus the optional A2UI-powered **AI Control Workspace** (increment 5, below).
 
 ## Completed
 
@@ -18,6 +19,17 @@ Status as of 2026-10-08: all four planned increments are implemented and were ex
    unrepresentable exceptions, demo-only gating); dashboard with defined denominators; assessments,
    exceptions, rollouts, bundles, audit, implementation and simulation-disclosure views; tests; documentation.
 
+5. **Optional AI Control Workspace** (`docs/a2ui-workspace.md`), behind `ENABLE_A2UI_WORKSPACE`:
+   - Phase 1, foundation: feature flag, experience selector with per-user preference (migration 0003,
+     `users.preferences`), `/workspace` route, approved A2UI v0.9 catalog (12 domain + 2 layout components) with
+     strict server and client contracts, server and client payload validation, error boundary.
+   - Phase 2, investigation: typed read tools over the existing services (caller-scoped), deterministic intents,
+     the Azure AI Search production impact investigation, context and actions panel, deep links both ways.
+   - Phase 3, AI orchestration: provider abstraction, Anthropic provider (official SDK, read-only strict tools,
+     JSON plan, refusal fallbacks), strict plan validation, deterministic fallback, audit of every AI run.
+   - Phase 4, guided workflows: exception, rollout-plan and control drafts with stale-basis and blocker checks,
+     submitted through the existing services after confirmation; approvals and handoff stay in Classic.
+
 ## Verified by execution (this environment)
 
 | Check | Command | Result |
@@ -33,8 +45,25 @@ Status as of 2026-10-08: all four planned increments are implemented and were ex
 | Live deployment refused | `docker compose run --rm -e ENABLE_LIVE_DEPLOYMENT=true backend` | startup failed with `ConfigurationError` |
 | Non-local demo auth refused | `-e APP_ENV=production` / `-e AUTH_MODE=oidc` with `check-config` | exit 2 with explicit messages |
 | Reconciliation idempotency | `make reconcile` twice | first run: 2 expired, 1 removal handoff, 1 cleanup item; second run: no changes |
+| Workspace backend tests (local PostgreSQL 16) | `cd backend && .venv/bin/pytest -q` | **199 passed** (49 existing + 150 workspace: validator, deterministic, AI with scripted provider and stubbed SDK client, hardening) |
+| Workspace frontend | `npx tsc --noEmit`; `npx vitest run`; `npx next build` | passed; **77** unit tests (10 existing + 67 workspace); `/workspace` builds with the renderer in a separate client-only chunk |
+| Browser journeys (local API + `next start`, after `reset`) | `npx playwright test` | **4 passed**: Classic journey, workspace selector/investigation/scope/deep links, confirmed assessment from the workspace, scoped requester exception draft |
+| Flag off | API with `ENABLE_A2UI_WORKSPACE=false` | Classic journey passed; no nav entry, selector or deep link; `/workspace` shows the disabled notice; `/api/v1/workspace/*` returns 404 |
 
 ## Issues found and fixed during the build
+
+Workspace increment:
+- The pinned A2UI renderer validates props but silently accepts unknown component types: the client now
+  pre-validates every payload against the catalog before rendering.
+- AI audit events were catalogue-level and readable by every scoped user; they are now scoped.
+- A scope named in a question produced a different message for unreadable vs unknown scopes (existence oracle).
+- "Who approved ..." was classified as a rollout question; intent order fixed.
+- Draft submission trusted a client-supplied duplicate search and did not re-check rollout preconditions; both
+  are now recomputed on the server (409 `DRAFT_BLOCKED`).
+- Safe-link pattern accepted `.`/`..` path segments; rejected on both sides.
+- Transitive `dompurify` 3.4.11 (via `@a2ui/markdown-it`) had advisories; overridden to 3.4.16.
+
+Core MVP:
 
 - Assessment results could be flushed before their (append-only) run row: runs are now inserted first.
 - "Latest" ordering depended on timestamps, which collide under a fixed test clock: added monotonic `seq`
@@ -48,7 +77,10 @@ Status as of 2026-10-08: all four planned increments are implemented and were ex
 ## Not done / deferred (by design)
 
 Live inventory readers, existing-policy import, GitHub PR integration, authenticated pipeline callbacks,
-production SSO, real telemetry, automated evidence reconciliation, AI assistance. AWS documentation must be
+production SSO, real telemetry, automated evidence reconciliation. AI-assisted workspace mode is implemented
+but was not run against the live Anthropic API here (no credentials); it is covered by a scripted provider and
+a stubbed SDK client. Pre-existing: `npm audit` reports advisories for Next.js 14.2.x whose fix requires a major
+upgrade (Next 16), not attempted in this increment. AWS documentation must be
 verified from primary sources before the SCP implementation can be integration-ready.
 
 ## Exact next commands
@@ -58,5 +90,5 @@ cp .env.example .env
 docker compose up -d --build --wait
 docker compose run --rm ops python -m app.cli reset
 docker compose run --rm ops pytest
-cd frontend && npm ci && npx vitest run && npx playwright test
+cd frontend && npm ci && npx vitest run && npx playwright test   # needs ENABLE_A2UI_WORKSPACE=true for workspace.spec.ts
 ```
