@@ -17,7 +17,8 @@ function LoginInner() {
   const params = useSearchParams();
   const [err, setErr] = useState<ApiError | null>(null);
   const next = params.get("next");
-  const target = next && next.startsWith("/") && !next.startsWith("//") ? next : "/dashboard";
+  // Without an explicit next, "/" picks Classic or the AI Workspace from the saved preference.
+  const target = next && next.startsWith("/") && !next.startsWith("//") ? next : "/";
 
   return (
     <main className="mx-auto max-w-3xl p-8">

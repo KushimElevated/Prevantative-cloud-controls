@@ -339,7 +339,7 @@
             "properties": {
               "href": {
                 "maxLength": 512,
-                "pattern": "^/(dashboard|controls|assessments|exceptions|rollouts|bundles|implementations|audit|workspace)(/[A-Za-z0-9._~:@-]+)*(\\?[A-Za-z0-9._~:@=&%+/-]*)?$",
+                "pattern": "^/(dashboard|controls|assessments|exceptions|rollouts|bundles|implementations|audit|workspace)(/[A-Za-z0-9_~:@-][A-Za-z0-9._~:@-]*)*(\\?[A-Za-z0-9._~:@=&%+/-]*)?$",
                 "title": "Href",
                 "type": "string"
               },
@@ -603,7 +603,7 @@
             "properties": {
               "href": {
                 "maxLength": 512,
-                "pattern": "^/(dashboard|controls|assessments|exceptions|rollouts|bundles|implementations|audit|workspace)(/[A-Za-z0-9._~:@-]+)*(\\?[A-Za-z0-9._~:@=&%+/-]*)?$",
+                "pattern": "^/(dashboard|controls|assessments|exceptions|rollouts|bundles|implementations|audit|workspace)(/[A-Za-z0-9_~:@-][A-Za-z0-9._~:@-]*)*(\\?[A-Za-z0-9._~:@=&%+/-]*)?$",
                 "title": "Href",
                 "type": "string"
               },
@@ -887,7 +887,7 @@
             "properties": {
               "href": {
                 "maxLength": 512,
-                "pattern": "^/(dashboard|controls|assessments|exceptions|rollouts|bundles|implementations|audit|workspace)(/[A-Za-z0-9._~:@-]+)*(\\?[A-Za-z0-9._~:@=&%+/-]*)?$",
+                "pattern": "^/(dashboard|controls|assessments|exceptions|rollouts|bundles|implementations|audit|workspace)(/[A-Za-z0-9_~:@-][A-Za-z0-9._~:@-]*)*(\\?[A-Za-z0-9._~:@=&%+/-]*)?$",
                 "title": "Href",
                 "type": "string"
               },
@@ -1380,7 +1380,7 @@
               },
               "href": {
                 "maxLength": 512,
-                "pattern": "^/(dashboard|controls|assessments|exceptions|rollouts|bundles|implementations|audit|workspace)(/[A-Za-z0-9._~:@-]+)*(\\?[A-Za-z0-9._~:@=&%+/-]*)?$",
+                "pattern": "^/(dashboard|controls|assessments|exceptions|rollouts|bundles|implementations|audit|workspace)(/[A-Za-z0-9_~:@-][A-Za-z0-9._~:@-]*)*(\\?[A-Za-z0-9._~:@=&%+/-]*)?$",
                 "title": "Href",
                 "type": "string"
               },
@@ -1440,7 +1440,7 @@
             "properties": {
               "href": {
                 "maxLength": 512,
-                "pattern": "^/(dashboard|controls|assessments|exceptions|rollouts|bundles|implementations|audit|workspace)(/[A-Za-z0-9._~:@-]+)*(\\?[A-Za-z0-9._~:@=&%+/-]*)?$",
+                "pattern": "^/(dashboard|controls|assessments|exceptions|rollouts|bundles|implementations|audit|workspace)(/[A-Za-z0-9_~:@-][A-Za-z0-9._~:@-]*)*(\\?[A-Za-z0-9._~:@=&%+/-]*)?$",
                 "title": "Href",
                 "type": "string"
               },
@@ -1600,7 +1600,7 @@
               },
               "href": {
                 "maxLength": 512,
-                "pattern": "^/(dashboard|controls|assessments|exceptions|rollouts|bundles|implementations|audit|workspace)(/[A-Za-z0-9._~:@-]+)*(\\?[A-Za-z0-9._~:@=&%+/-]*)?$",
+                "pattern": "^/(dashboard|controls|assessments|exceptions|rollouts|bundles|implementations|audit|workspace)(/[A-Za-z0-9_~:@-][A-Za-z0-9._~:@-]*)*(\\?[A-Za-z0-9._~:@=&%+/-]*)?$",
                 "title": "Href",
                 "type": "string"
               },
@@ -1740,7 +1740,7 @@
             "properties": {
               "href": {
                 "maxLength": 512,
-                "pattern": "^/(dashboard|controls|assessments|exceptions|rollouts|bundles|implementations|audit|workspace)(/[A-Za-z0-9._~:@-]+)*(\\?[A-Za-z0-9._~:@=&%+/-]*)?$",
+                "pattern": "^/(dashboard|controls|assessments|exceptions|rollouts|bundles|implementations|audit|workspace)(/[A-Za-z0-9_~:@-][A-Za-z0-9._~:@-]*)*(\\?[A-Za-z0-9._~:@=&%+/-]*)?$",
                 "title": "Href",
                 "type": "string"
               },
@@ -2489,7 +2489,7 @@
             "properties": {
               "href": {
                 "maxLength": 512,
-                "pattern": "^/(dashboard|controls|assessments|exceptions|rollouts|bundles|implementations|audit|workspace)(/[A-Za-z0-9._~:@-]+)*(\\?[A-Za-z0-9._~:@=&%+/-]*)?$",
+                "pattern": "^/(dashboard|controls|assessments|exceptions|rollouts|bundles|implementations|audit|workspace)(/[A-Za-z0-9_~:@-][A-Za-z0-9._~:@-]*)*(\\?[A-Za-z0-9._~:@=&%+/-]*)?$",
                 "title": "Href",
                 "type": "string"
               },
@@ -2792,7 +2792,7 @@
             "properties": {
               "href": {
                 "maxLength": 512,
-                "pattern": "^/(dashboard|controls|assessments|exceptions|rollouts|bundles|implementations|audit|workspace)(/[A-Za-z0-9._~:@-]+)*(\\?[A-Za-z0-9._~:@=&%+/-]*)?$",
+                "pattern": "^/(dashboard|controls|assessments|exceptions|rollouts|bundles|implementations|audit|workspace)(/[A-Za-z0-9_~:@-][A-Za-z0-9._~:@-]*)*(\\?[A-Za-z0-9._~:@=&%+/-]*)?$",
                 "title": "Href",
                 "type": "string"
               },
@@ -3097,5 +3097,5 @@
   "dataPathPattern": "^/views/[a-z][a-z0-9_]{0,39}$",
   "protocolVersion": "v0.9",
   "renderer": "@a2ui/react 0.11.1 / @a2ui/web_core 0.11.0 (A2UI v0.9 message processor)",
-  "safeHrefPattern": "^/(dashboard|controls|assessments|exceptions|rollouts|bundles|implementations|audit|workspace)(/[A-Za-z0-9._~:@-]+)*(\\?[A-Za-z0-9._~:@=&%+/-]*)?$"
+  "safeHrefPattern": "^/(dashboard|controls|assessments|exceptions|rollouts|bundles|implementations|audit|workspace)(/[A-Za-z0-9_~:@-][A-Za-z0-9._~:@-]*)*(\\?[A-Za-z0-9._~:@=&%+/-]*)?$"
 }

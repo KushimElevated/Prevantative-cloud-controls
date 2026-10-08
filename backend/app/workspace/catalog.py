@@ -22,9 +22,9 @@ from pydantic import BaseModel, ConfigDict, Field
 CATALOG_ID = "urn:ccp:a2ui:control-workspace:v1"
 PROTOCOL_VERSION = "v0.9"
 
-# Internal Classic/workspace routes only. No scheme, no host, no protocol-relative URLs.
+# Internal Classic/workspace routes only. No scheme, no host, no protocol-relative URLs, no "." or ".." segments.
 SAFE_HREF = (r"^/(dashboard|controls|assessments|exceptions|rollouts|bundles|implementations|audit|workspace)"
-             r"(/[A-Za-z0-9._~:@-]+)*(\?[A-Za-z0-9._~:@=&%+/-]*)?$")
+             r"(/[A-Za-z0-9_~:@-][A-Za-z0-9._~:@-]*)*(\?[A-Za-z0-9._~:@=&%+/-]*)?$")
 DATA_PATH = r"^/views/[a-z][a-z0-9_]{0,39}$"
 COMPONENT_ID = r"^[A-Za-z][A-Za-z0-9_-]{0,63}$"
 

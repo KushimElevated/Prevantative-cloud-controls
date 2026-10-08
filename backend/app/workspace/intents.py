@@ -65,8 +65,9 @@ INTENTS: dict[str, dict[str, Any]] = {
                   "EvidencePanel"],
     },
 }
-INTENT_ORDER = ["impact_preview", "exception_review", "rollout_status", "readiness", "coverage_status",
-                "audit_history"]
+# audit_history precedes rollout_status so "who approved ..." is not captured by the broader "approv" pattern.
+INTENT_ORDER = ["impact_preview", "exception_review", "audit_history", "rollout_status", "readiness",
+                "coverage_status"]
 
 EXAMPLE_QUESTIONS = [
     "What would happen if we prevented public network access for all Azure AI Search services in production?",
@@ -90,6 +91,7 @@ ENVIRONMENT_HINTS = [
     (r"\bsandbox\b", "sandbox"),
 ]
 NONPROD_ENVS = {"nonprod", "dev", "sandbox"}
+MIN_MATCH_SCORE = 2
 CONTROL_ID = re.compile(r"\bCTL-[A-Z0-9-]{3,60}\b")
 SCOPE_ID = re.compile(r"\b(?:az|aws)-[a-z0-9-]{2,60}\b")
 
@@ -154,7 +156,9 @@ def interpret(inv: Investigation, question: str, *, control_id: str | None = Non
     if it.control_id is None:
         found = search_controls(inv, SearchControlsInput(query=question[:300], provider=it.provider,
                                                          resource_type=it.resource_type))
-        if found["items"]:
+        # A resource-type match scores 10; otherwise require two shared words so one coincidental word
+        # (e.g. "prevent") does not select a control.
+        if found["items"] and found["items"][0]["score"] >= MIN_MATCH_SCORE:
             top = found["items"][0]
             it.control_id = top["control_id"]
             it.control_reason = "best catalogue match (" + "; ".join(top["match_reasons"]) + ")"
@@ -168,7 +172,8 @@ def interpret(inv: Investigation, question: str, *, control_id: str | None = Non
 
     # Scope: explicit id > context > environment/application hints > widest readable scope.
     tree = inv.ctx.tree
-    explicit_scope = next((s for s in SCOPE_ID.findall(q) if s in tree.scopes), None) or scope_id
+    # Unreadable scopes named in the question are ignored exactly like unknown ones (no existence oracle).
+    explicit_scope = next((s for s in SCOPE_ID.findall(q) if s in tree.scopes and inv.can_read(s)), None) or scope_id
     if explicit_scope:
         if explicit_scope in tree.scopes and inv.can_read(explicit_scope):
             it.scope_id = explicit_scope

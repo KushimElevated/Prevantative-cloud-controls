@@ -1,6 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { useApi } from "@/lib/hooks";
+import { useFeatures } from "@/lib/features";
 import { humanize, ratioText } from "@/lib/format";
 import { ErrorBox, Loading, Meter, PageHeader, Section, StatTile, StatusBadge } from "@/components/ui";
 import { IntentSection } from "@/components/control/IntentSection";
@@ -32,6 +34,7 @@ function Coverage({ detail }: { detail: any }) {
 
 export default function ControlDetailPage({ params }: { params: { id: string } }) {
   const { data, error, loading, reload } = useApi<any>(`/controls/${encodeURIComponent(params.id)}`);
+  const { workspaceEnabled } = useFeatures();
   if (loading && !data) return <Loading what="Loading control" />;
   if (error && !data) return <ErrorBox error={error} />;
   if (!data) return null;
@@ -45,7 +48,13 @@ export default function ControlDetailPage({ params }: { params: { id: string } }
           <span>{humanize(rev.severity)} severity</span>
           <span>· {humanize(data.control.origin)}</span>
           <span>· providers {rev.providers.join(", ")}</span>
-        </span>} />
+        </span>}
+        actions={workspaceEnabled ? (
+          <Link href={`/workspace?control=${encodeURIComponent(data.control.id)}`} data-testid="open-in-workspace"
+                className="rounded border border-violet-300 px-3 py-1.5 text-sm font-medium text-violet-800 hover:bg-violet-50 focus:outline-none focus:ring-2 focus:ring-sky-500 dark:border-violet-700 dark:text-violet-200 dark:hover:bg-violet-950">
+            Investigate in AI Workspace
+          </Link>
+        ) : undefined} />
       <NextDecision detail={data} />
       <nav aria-label="Sections" className="mb-4 flex flex-wrap gap-3 text-sm text-sky-700">
         {["intent", "implementations", "baseline", "assessment", "exceptions", "rollout", "coverage", "audit"].map((s) => (

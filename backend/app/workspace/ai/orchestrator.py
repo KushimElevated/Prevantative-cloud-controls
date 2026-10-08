@@ -31,7 +31,7 @@ from app.services import audit
 from app.workspace.ai.base import PLAN_SCHEMA, SUGGESTED_ACTIONS, ModelProvider, ProviderUnavailable
 from app.workspace.catalog import DOMAIN_COMPONENTS
 from app.workspace.composer import compose
-from app.workspace.intents import Interpretation, interpret
+from app.workspace.intents import CONTROL_ID, Interpretation, interpret
 from app.workspace.tools import Investigation, run_tool, tool_specs
 
 APPROVED_PROVIDERS = {"anthropic"}
@@ -82,8 +82,9 @@ def ai_status(settings: Settings, override: ModelProvider | None = None) -> dict
     if not settings.enable_a2ui_workspace:
         return {**base, "available": False, "reason": "The AI Control Workspace is disabled."}
     if settings.workspace_ai_provider in ("", "none"):
-        return {**base, "available": False, "reason": "AI-assisted mode is not configured (WORKSPACE_AI_PROVIDER=none). "
-                                                      "Deterministic mode is fully functional."}
+        return {**base, "available": False,
+                "reason": "AI-assisted mode is not configured (WORKSPACE_AI_PROVIDER=none). Deterministic mode is "
+                          "fully functional."}
     if settings.workspace_ai_provider not in APPROVED_PROVIDERS:
         return {**base, "available": False,
                 "reason": f"WORKSPACE_AI_PROVIDER={settings.workspace_ai_provider!r} is not an approved provider."}
@@ -147,7 +148,8 @@ def run_ai_investigation(inv: Investigation, question: str, interpretation: Inte
         provider = build_provider(settings, override)
     except ProviderUnavailable as exc:
         return _fallback(compose(inv, question, interpretation),
-                         f"AI-assisted mode is unavailable: {exc}. Showing the deterministic investigation.")
+                         f"AI-assisted mode is unavailable: {str(exc).rstrip('.')}. Showing the deterministic "
+                         "investigation.")
     calls: list[dict[str, Any]] = []
     user = json.dumps({"question": question,
                        "suggested_control_id": interpretation.control_id,
@@ -166,7 +168,7 @@ def run_ai_investigation(inv: Investigation, question: str, interpretation: Inte
         outcome_error = "The model's answer did not match the required plan schema."
     except Exception as exc:  # noqa: BLE001 - any provider failure degrades to deterministic mode
         outcome_error = f"The AI provider failed ({type(exc).__name__})."
-    _audit(inv, question, provider.name, model_name, calls, outcome_error)
+    _audit(inv, question, provider.name, model_name, calls, outcome_error, _audit_scopes(inv, interpretation))
     if plan is None:
         result = compose(inv, question, interpretation)
         result["steps"] = [*_ai_steps(calls), *result["steps"]]
@@ -174,7 +176,11 @@ def run_ai_investigation(inv: Investigation, question: str, interpretation: Inte
 
     notes = []
     chosen = replace(interpretation, notes=list(interpretation.notes))
-    if plan.control_id and plan.control_id != interpretation.control_id:
+    named = CONTROL_ID.search(question)
+    if plan.control_id and plan.control_id != interpretation.control_id and named:
+        notes.append(f"Kept {named.group(0)} named in the question instead of {plan.control_id!r} proposed by the "
+                     "model.")
+    elif plan.control_id and plan.control_id != interpretation.control_id:
         if _control_exists(inv, plan.control_id):
             chosen = interpret(inv, question, control_id=plan.control_id, scope_id=plan.scope_id,
                                intent=interpretation.intent)
@@ -219,11 +225,22 @@ def _ai_steps(calls: list[dict[str, Any]]) -> list[dict[str, Any]]:
              "detail": c["detail"]} for c in calls]
 
 
+def _audit_scopes(inv: Investigation, interpretation: Interpretation) -> list[str]:
+    """Scopes that make the audit event visible: the investigated scope, else the caller's own readable scopes,
+    else (global callers) the provider roots - never catalogue-level, which every scoped user can read."""
+    if interpretation.scope_id:
+        return [interpretation.scope_id]
+    if inv.readable is not None:
+        return sorted(inv.readable)
+    return sorted(s.id for s in inv.ctx.tree.scopes.values() if s.parent_id is None)
+
+
 def _audit(inv: Investigation, question: str, provider: str, model: str, calls: list[dict[str, Any]],
-           error: str | None) -> None:
-    """AI-assisted runs send authorised data to an external provider, so each run is audited."""
+           error: str | None, scope_ids: list[str]) -> None:
+    """AI-assisted runs send authorised data to an external provider, so each run is audited. The event is
+    scoped to the investigated scope so the question is not visible to users who cannot read it."""
     audit.record(inv.ctx, action="workspace.ai_investigation", object_type="workspace_investigation",
-                 object_id=f"q-{digest(question)[7:19]}",
+                 object_id=f"q-{digest(question)[7:19]}", scope_ids=scope_ids,
                  details={"provider": provider, "model": model, "question": question[:500],
                           "tools_called": [c["tool"] for c in calls],
                           "outcome": "fallback" if error else "ok", "error": error})

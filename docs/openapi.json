@@ -464,6 +464,68 @@
         "title": "DevLogin",
         "type": "object"
       },
+      "DraftPrepare": {
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "enum": [
+              "exception",
+              "rollout_plan",
+              "control"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "params": {
+            "additionalProperties": true,
+            "title": "Params",
+            "type": "object"
+          }
+        },
+        "required": [
+          "kind",
+          "params"
+        ],
+        "title": "DraftPrepare",
+        "type": "object"
+      },
+      "DraftSubmit": {
+        "additionalProperties": false,
+        "properties": {
+          "basis": {
+            "additionalProperties": true,
+            "title": "Basis",
+            "type": "object"
+          },
+          "confirmed": {
+            "const": true,
+            "title": "Confirmed",
+            "type": "boolean"
+          },
+          "kind": {
+            "enum": [
+              "exception",
+              "rollout_plan",
+              "control"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "payload": {
+            "additionalProperties": true,
+            "title": "Payload",
+            "type": "object"
+          }
+        },
+        "required": [
+          "kind",
+          "basis",
+          "payload",
+          "confirmed"
+        ],
+        "title": "DraftSubmit",
+        "type": "object"
+      },
       "EvidenceItem": {
         "additionalProperties": false,
         "properties": {
@@ -1039,6 +1101,75 @@
         "title": "ImplementationRevisionUpdate",
         "type": "object"
       },
+      "InvestigationRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "control_id": {
+            "anyOf": [
+              {
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Control Id"
+          },
+          "intent": {
+            "anyOf": [
+              {
+                "enum": [
+                  "impact_preview",
+                  "exception_review",
+                  "rollout_status",
+                  "readiness",
+                  "coverage_status",
+                  "audit_history",
+                  "control_overview"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Intent"
+          },
+          "mode": {
+            "default": "deterministic",
+            "enum": [
+              "deterministic",
+              "ai"
+            ],
+            "title": "Mode",
+            "type": "string"
+          },
+          "question": {
+            "maxLength": 500,
+            "minLength": 3,
+            "title": "Question",
+            "type": "string"
+          },
+          "scope_id": {
+            "anyOf": [
+              {
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scope Id"
+          }
+        },
+        "required": [
+          "question"
+        ],
+        "title": "InvestigationRequest",
+        "type": "object"
+      },
       "LockedCommand": {
         "additionalProperties": false,
         "properties": {
@@ -1377,6 +1508,33 @@
           "expected_lock_version"
         ],
         "title": "PlanUpdate",
+        "type": "object"
+      },
+      "PreferencesUpdate": {
+        "additionalProperties": false,
+        "properties": {
+          "experience": {
+            "enum": [
+              "classic",
+              "workspace"
+            ],
+            "title": "Experience",
+            "type": "string"
+          },
+          "workspace_mode": {
+            "default": "deterministic",
+            "enum": [
+              "deterministic",
+              "ai"
+            ],
+            "title": "Workspace Mode",
+            "type": "string"
+          }
+        },
+        "required": [
+          "experience"
+        ],
+        "title": "PreferencesUpdate",
         "type": "object"
       },
       "ReadinessEvidenceCreate": {
@@ -3850,6 +4008,25 @@
         ]
       }
     },
+    "/api/v1/features": {
+      "get": {
+        "operationId": "features_api_v1_features_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Features",
+        "tags": [
+          "workspace"
+        ]
+      }
+    },
     "/api/v1/handoff-bundles/{bundle_id}": {
       "get": {
         "operationId": "get_bundle_api_v1_handoff_bundles__bundle_id__get",
@@ -4336,6 +4513,62 @@
         "tags": [
           "inventory",
           "assessments"
+        ]
+      }
+    },
+    "/api/v1/me/preferences": {
+      "get": {
+        "operationId": "get_preferences_api_v1_me_preferences_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Preferences",
+        "tags": [
+          "workspace"
+        ]
+      },
+      "put": {
+        "operationId": "put_preferences_api_v1_me_preferences_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PreferencesUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Put Preferences",
+        "tags": [
+          "workspace"
         ]
       }
     },
@@ -5339,6 +5572,180 @@
         "tags": [
           "inventory",
           "assessments"
+        ]
+      }
+    },
+    "/api/v1/workspace/catalog": {
+      "get": {
+        "operationId": "workspace_catalog_api_v1_workspace_catalog_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Workspace Catalog",
+        "tags": [
+          "workspace"
+        ]
+      }
+    },
+    "/api/v1/workspace/drafts/prepare": {
+      "post": {
+        "operationId": "prepare_draft_api_v1_workspace_drafts_prepare_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DraftPrepare"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Prepare Draft",
+        "tags": [
+          "workspace"
+        ]
+      }
+    },
+    "/api/v1/workspace/drafts/submit": {
+      "post": {
+        "operationId": "submit_draft_api_v1_workspace_drafts_submit_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DraftSubmit"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Submit Draft",
+        "tags": [
+          "workspace"
+        ]
+      }
+    },
+    "/api/v1/workspace/intents": {
+      "get": {
+        "operationId": "workspace_intents_api_v1_workspace_intents_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Workspace Intents",
+        "tags": [
+          "workspace"
+        ]
+      }
+    },
+    "/api/v1/workspace/investigations": {
+      "post": {
+        "operationId": "investigate_api_v1_workspace_investigations_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InvestigationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Investigate",
+        "tags": [
+          "workspace"
+        ]
+      }
+    },
+    "/api/v1/workspace/tools": {
+      "get": {
+        "operationId": "workspace_tools_api_v1_workspace_tools_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Workspace Tools",
+        "tags": [
+          "workspace"
         ]
       }
     }

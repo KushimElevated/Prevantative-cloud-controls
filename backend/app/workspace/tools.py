@@ -193,8 +193,16 @@ def _latest_impl_revision(control: m.Control, provider: str | None = None) -> m.
 # ------------------------------------------------------------------------------------ READ tools
 
 
+STOPWORDS = {"the", "and", "for", "all", "any", "are", "was", "were", "what", "which", "who", "whom", "why", "how",
+             "would", "should", "could", "will", "can", "does", "did", "has", "have", "had", "with", "without",
+             "from", "into", "this", "that", "these", "those", "there", "our", "your", "their", "about", "happen",
+             "happens", "prevent", "prevented", "prevents", "control", "controls", "show", "list", "tell", "give",
+             "need", "want", "ready", "make", "made", "use", "using", "than", "then", "when", "where", "they",
+             "them", "its", "not", "out", "get"}
+
+
 def _words(text: str | None) -> set[str]:
-    return {w for w in re.findall(r"[a-z0-9]+", (text or "").lower()) if len(w) > 2}
+    return {w for w in re.findall(r"[a-z0-9]+", (text or "").lower()) if len(w) > 2 and w not in STOPWORDS}
 
 
 def search_controls(inv: Investigation, inp: SearchControlsInput) -> dict[str, Any]:
@@ -731,8 +739,11 @@ def evidence_panel(inv: Investigation, control_id: str, scope_id: str | None) ->
             confidence = {k: {"category": v["category"], "reasons": v["reasons"]}
                           for k, v in run.confidence.items() if isinstance(v, dict) and "category" in v}
             disclosure = run.disclosure
-        limitations = list(run.limitations)
-        assumptions = list(run.assumptions)
+            limitations = list(run.limitations)
+            assumptions = list(run.assumptions)
+        else:
+            limitations = ["Run-level disclosure, confidence and limitations are hidden because the assessment "
+                           "target includes scopes you cannot read."]
     d = inv.detail(control_id)
     for b in d["existing_bindings"]:
         if scope_id and not (_within(inv, scope_id, b["target_scope_id"]) or _within(inv, b["target_scope_id"], scope_id)):

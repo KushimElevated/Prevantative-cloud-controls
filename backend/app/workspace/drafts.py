@@ -155,15 +155,9 @@ def _pick_implementation_revision(control: m.Control, irev_id: str | None) -> m.
     return _latest_impl_revision(control)
 
 
-def prepare_rollout_draft(inv: Investigation, inp: RolloutDraftInput) -> dict[str, Any]:
-    control = inv.control(inp.control_id)
-    irev = _pick_implementation_revision(control, inp.implementation_revision_id)
-    if irev is None:
-        raise ValidationFailed("This control has no implementation to roll out.")
-    basis = rollout_basis(inv, control, irev)
+def _rollout_blockers(inv: Investigation, irev: m.ImplementationRevision, basis: dict[str, Any]) -> list[str]:
+    """Workspace preconditions for a rollout draft, checked when preparing and again when submitting."""
     blocking = []
-    if not inv.ctx.principal.has_role(Role.CONTROL_ENGINEER):
-        blocking.append("Creating a rollout plan requires the CONTROL_ENGINEER role.")
     if basis["active_plan_id"]:
         blocking.append(f"Plan {basis['active_plan_id']} is already active for this control; edit or cancel it in "
                         "the Classic Experience.")
@@ -173,6 +167,19 @@ def prepare_rollout_draft(inv: Investigation, inp: RolloutDraftInput) -> dict[st
     val = latest_validation(inv.ctx, irev)
     if val is None or val.outcome != "PASS":
         blocking.append("The implementation revision has no passing validation.")
+    return blocking
+
+
+def prepare_rollout_draft(inv: Investigation, inp: RolloutDraftInput) -> dict[str, Any]:
+    control = inv.control(inp.control_id)
+    irev = _pick_implementation_revision(control, inp.implementation_revision_id)
+    if irev is None:
+        raise ValidationFailed("This control has no implementation to roll out.")
+    basis = rollout_basis(inv, control, irev)
+    blocking = []
+    if not inv.ctx.principal.has_role(Role.CONTROL_ENGINEER):
+        blocking.append("Creating a rollout plan requires the CONTROL_ENGINEER role.")
+    blocking += _rollout_blockers(inv, irev, basis)
     template = rollouts.plan_template(inv.ctx, control.id, irev.id)
     payload = {k: template[k] for k in ("control_id", "implementation_revision_id", "target_scope_id", "title",
                                        "rings", "pause_criteria", "rollback_plan", "prerequisite_changes",
@@ -194,22 +201,34 @@ def prepare_rollout_draft(inv: Investigation, inp: RolloutDraftInput) -> dict[st
 # ------------------------------------------------------------------------------------ control
 
 
-def control_basis(inv: Investigation, search: dict[str, Any]) -> dict[str, Any]:
-    found = search_controls(inv, SearchControlsInput.model_validate(search))
-    return {"search": search, "matching_control_ids": sorted(i["control_id"] for i in found["items"]
-                                                             if i["score"] >= 10)}
+def control_basis(inv: Investigation, providers: list[str], resource_types: list[str]) -> dict[str, Any]:
+    """Existing controls that already target the same native resource type (and provider, when given)."""
+    matches: set[str] = set()
+    for rtype in resource_types:
+        for provider in providers or [None]:
+            found = search_controls(inv, SearchControlsInput(provider=provider, resource_type=rtype))
+            matches.update(i["control_id"] for i in found["items"])
+    return {"providers": sorted(providers), "resource_types": sorted(resource_types),
+            "matching_control_ids": sorted(matches)}
+
+
+def _duplicate_reason(basis: dict[str, Any]) -> list[str]:
+    if not basis["matching_control_ids"]:
+        return []
+    return ["Existing control(s) already target this resource type: " + ", ".join(basis["matching_control_ids"])
+            + ". Revise the existing control instead of creating a duplicate."]
 
 
 def prepare_control_draft(inv: Investigation, inp: ControlDraftInput) -> dict[str, Any]:
-    search = {"query": inp.problem_statement[:300], "provider": inp.provider, "resource_type": inp.resource_type}
-    basis = control_basis(inv, search)
+    basis = control_basis(inv, [inp.provider] if inp.provider else [],
+                          [inp.resource_type] if inp.resource_type else [])
     blocking = []
     if not inv.ctx.principal.has_role(Role.CONTROL_ENGINEER):
         blocking.append("Proposing a control requires the CONTROL_ENGINEER role.")
-    if basis["matching_control_ids"]:
-        blocking.append("Existing control(s) already target this resource type: "
-                        + ", ".join(basis["matching_control_ids"])
-                        + ". Revise the existing control instead of creating a duplicate.")
+    if not (inp.provider and inp.resource_type):
+        blocking.append("Name the cloud provider and native resource type in the question (for example 'Azure "
+                        "storage accounts') so the proposal targets something specific.")
+    blocking += _duplicate_reason(basis)
     payload = {
         "id": "", "origin": "PROPOSED", "operational_owner": "Cloud Engineering",
         "change_reason": "Proposed from the AI Control Workspace", "name": "", "description": inp.problem_statement,
@@ -249,6 +268,12 @@ def _stale(submitted: dict[str, Any], current: dict[str, Any]) -> None:
                        code="DRAFT_STALE", details={"changed": changed, "current_basis": current})
 
 
+def _blocked(reasons: list[str]) -> None:
+    if reasons:
+        raise Conflict("The draft cannot be submitted: " + " ".join(reasons), code="DRAFT_BLOCKED",
+                       details={"blocking_reasons": reasons})
+
+
 def submit_draft(inv: Investigation, body: DraftSubmit) -> dict[str, Any]:
     ctx = inv.ctx
     if body.kind == "exception":
@@ -263,16 +288,17 @@ def submit_draft(inv: Investigation, body: DraftSubmit) -> dict[str, Any]:
         payload = _validate(PlanCreate, body.payload)
         control = inv.control(payload.control_id)
         irev = _pick_implementation_revision(control, payload.implementation_revision_id)
-        _stale(body.basis, rollout_basis(inv, control, irev))
+        current = rollout_basis(inv, control, irev)
+        _stale(body.basis, current)
+        _blocked(_rollout_blockers(inv, irev, current))
         plan = rollouts.create_plan(ctx, payload)
         created = {"type": "rollout_plan", "id": plan.id, "href": f"/controls/{control.id}"}
         control_id, scope_ids = control.id, [plan.target_scope_id]
     else:
         payload = _validate(ControlCreate, body.payload)
-        search = body.basis.get("search")
-        if not isinstance(search, dict):
-            raise ValidationFailed("Draft basis is missing its duplicate check.")
-        _stale(body.basis, control_basis(inv, search))
+        current = control_basis(inv, list(payload.providers), list(payload.resource_types))
+        _stale(body.basis, current)
+        _blocked(_duplicate_reason(current))
         control = controls.create_control(ctx, payload)
         created = {"type": "control", "id": control.id, "href": f"/controls/{control.id}"}
         control_id, scope_ids = control.id, []
