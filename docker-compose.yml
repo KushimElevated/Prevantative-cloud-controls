@@ -1,0 +1,105 @@
+name: ccp
+
+x-backend-env: &backend-env
+  APP_ENV: ${APP_ENV:-local}
+  AUTH_MODE: ${AUTH_MODE:-local-demo}
+  SECRET_KEY: ${SECRET_KEY:?set SECRET_KEY in .env}
+  CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:3000}
+  APP_CLOCK_FIXED: ${APP_CLOCK_FIXED:-}
+  HANDOFF_ADAPTER: ${HANDOFF_ADAPTER:-local-export}
+  PIPELINE_MODE: ${PIPELINE_MODE:-mock}
+  ENABLE_LIVE_DEPLOYMENT: ${ENABLE_LIVE_DEPLOYMENT:-false}
+  EXPORT_DIR: /data/exports
+  APP_DB_ROLE: ${CCP_APP_USER:-ccp_app}
+  DATABASE_URL: postgresql+psycopg://${CCP_APP_USER:-ccp_app}:${CCP_APP_PASSWORD}@db:5432/${CCP_DB:-ccp}
+
+x-ops-env: &ops-env
+  <<: *backend-env
+  # Owner/migration credentials are only given to one-shot ops containers, never the API.
+  MIGRATION_DATABASE_URL: postgresql+psycopg://${CCP_OWNER_USER:-ccp_owner}:${CCP_OWNER_PASSWORD}@db:5432/${CCP_DB:-ccp}
+  TEST_DATABASE_URL: postgresql+psycopg://${CCP_APP_USER:-ccp_app}:${CCP_APP_PASSWORD}@db:5432/${CCP_DB:-ccp}_test
+  TEST_MIGRATION_DATABASE_URL: postgresql+psycopg://${CCP_OWNER_USER:-ccp_owner}:${CCP_OWNER_PASSWORD}@db:5432/${CCP_DB:-ccp}_test
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      CCP_DB: ${CCP_DB:-ccp}
+      CCP_OWNER_USER: ${CCP_OWNER_USER:-ccp_owner}
+      CCP_OWNER_PASSWORD: ${CCP_OWNER_PASSWORD:?set CCP_OWNER_PASSWORD in .env}
+      CCP_APP_USER: ${CCP_APP_USER:-ccp_app}
+      CCP_APP_PASSWORD: ${CCP_APP_PASSWORD:?set CCP_APP_PASSWORD in .env}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./docker/postgres:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${CCP_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  migrate:
+    build: &backend-build
+      context: ./backend
+      secrets: [extra_ca]
+    command: ["python", "-m", "app.cli", "migrate"]
+    environment: *ops-env
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+
+  backend:
+    build: *backend-build
+    environment: *backend-env
+    volumes:
+      - exports:/data/exports
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health', timeout=2)"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  frontend:
+    build:
+      context: ./frontend
+      secrets: [extra_ca]
+    environment:
+      BACKEND_URL: http://backend:8000
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3000/login').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+
+  # One-shot operations: seed/reset/reconcile/tests. Usage: docker compose run --rm ops python -m app.cli reset
+  ops:
+    build: *backend-build
+    profiles: ["ops"]
+    environment: *ops-env
+    volumes:
+      - exports:/data/exports
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  pgdata:
+  exports:
+
+secrets:
+  # Only needed behind a TLS-intercepting proxy: set EXTRA_CA_CERT=/path/to/ca.pem when building.
+  extra_ca:
+    file: ${EXTRA_CA_CERT:-/dev/null}

@@ -1,0 +1,5346 @@
+{
+  "components": {
+    "schemas": {
+      "AdvanceCommand": {
+        "additionalProperties": false,
+        "properties": {
+          "expected_lock_version": {
+            "title": "Expected Lock Version",
+            "type": "integer"
+          },
+          "reason": {
+            "maxLength": 4000,
+            "minLength": 1,
+            "title": "Reason",
+            "type": "string"
+          },
+          "to_stage": {
+            "enum": [
+              "OBSERVATION",
+              "PILOT",
+              "LIMITED",
+              "BROAD"
+            ],
+            "title": "To Stage",
+            "type": "string"
+          }
+        },
+        "required": [
+          "to_stage",
+          "expected_lock_version",
+          "reason"
+        ],
+        "title": "AdvanceCommand",
+        "type": "object"
+      },
+      "AppliedIdentity": {
+        "additionalProperties": false,
+        "properties": {
+          "config_digest": {
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Config Digest",
+            "type": "string"
+          },
+          "native_identity": {
+            "maxLength": 512,
+            "minLength": 1,
+            "title": "Native Identity",
+            "type": "string"
+          },
+          "native_policy_id": {
+            "anyOf": [
+              {
+                "maxLength": 128,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Native Policy Id"
+          }
+        },
+        "required": [
+          "native_identity",
+          "config_digest"
+        ],
+        "title": "AppliedIdentity",
+        "type": "object"
+      },
+      "AssessmentCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "control_revision_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Control Revision Id"
+          },
+          "implementation_revision_id": {
+            "maxLength": 256,
+            "minLength": 1,
+            "title": "Implementation Revision Id",
+            "type": "string"
+          },
+          "inventory_snapshot_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Inventory Snapshot Id"
+          },
+          "request_fixture_set_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Request Fixture Set Id"
+          },
+          "target_scope_id": {
+            "maxLength": 256,
+            "minLength": 1,
+            "title": "Target Scope Id",
+            "type": "string"
+          },
+          "use_request_fixtures": {
+            "default": true,
+            "title": "Use Request Fixtures",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "implementation_revision_id",
+          "target_scope_id"
+        ],
+        "title": "AssessmentCreate",
+        "type": "object"
+      },
+      "BindingObservation": {
+        "additionalProperties": false,
+        "properties": {
+          "scenario": {
+            "enum": [
+              "MATCH",
+              "DRIFT",
+              "MISSING"
+            ],
+            "title": "Scenario",
+            "type": "string"
+          }
+        },
+        "required": [
+          "scenario"
+        ],
+        "title": "BindingObservation",
+        "type": "object"
+      },
+      "ControlCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "applicability_criteria": {
+            "maxLength": 4000,
+            "minLength": 1,
+            "title": "Applicability Criteria",
+            "type": "string"
+          },
+          "change_reason": {
+            "maxLength": 4000,
+            "minLength": 1,
+            "title": "Change Reason",
+            "type": "string"
+          },
+          "description": {
+            "maxLength": 4000,
+            "minLength": 1,
+            "title": "Description",
+            "type": "string"
+          },
+          "engineering_owner": {
+            "maxLength": 256,
+            "minLength": 1,
+            "title": "Engineering Owner",
+            "type": "string"
+          },
+          "exception_eligible": {
+            "title": "Exception Eligible",
+            "type": "boolean"
+          },
+          "framework_refs": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 30,
+            "title": "Framework Refs",
+            "type": "array"
+          },
+          "id": {
+            "pattern": "^CTL-[A-Z0-9-]{3,60}$",
+            "title": "Id",
+            "type": "string"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 30,
+            "title": "Limitations",
+            "type": "array"
+          },
+          "name": {
+            "maxLength": 256,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "operational_owner": {
+            "default": "Cloud Engineering",
+            "maxLength": 256,
+            "minLength": 1,
+            "title": "Operational Owner",
+            "type": "string"
+          },
+          "origin": {
+            "default": "PROPOSED",
+            "enum": [
+              "PROPOSED",
+              "IMPORTED",
+              "EXTERNALLY_MANAGED"
+            ],
+            "title": "Origin",
+            "type": "string"
+          },
+          "prevention_boundary": {
+            "maxLength": 4000,
+            "minLength": 1,
+            "title": "Prevention Boundary",
+            "type": "string"
+          },
+          "providers": {
+            "items": {
+              "enum": [
+                "azure",
+                "aws"
+              ],
+              "type": "string"
+            },
+            "maxItems": 2,
+            "minItems": 1,
+            "title": "Providers",
+            "type": "array"
+          },
+          "rationale": {
+            "maxLength": 4000,
+            "minLength": 1,
+            "title": "Rationale",
+            "type": "string"
+          },
+          "resource_types": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 20,
+            "minItems": 1,
+            "title": "Resource Types",
+            "type": "array"
+          },
+          "security_objective": {
+            "maxLength": 4000,
+            "minLength": 1,
+            "title": "Security Objective",
+            "type": "string"
+          },
+          "security_owner": {
+            "maxLength": 256,
+            "minLength": 1,
+            "title": "Security Owner",
+            "type": "string"
+          },
+          "severity": {
+            "enum": [
+              "CRITICAL",
+              "HIGH",
+              "MEDIUM",
+              "LOW"
+            ],
+            "title": "Severity",
+            "type": "string"
+          },
+          "source_evidence": {
+            "items": {
+              "$ref": "#/components/schemas/EvidenceItem"
+            },
+            "maxItems": 50,
+            "title": "Source Evidence",
+            "type": "array"
+          }
+        },
+        "required": [
+          "name",
+          "description",
+          "security_objective",
+          "rationale",
+          "severity",
+          "providers",
+          "resource_types",
+          "applicability_criteria",
+          "security_owner",
+          "engineering_owner",
+          "exception_eligible",
+          "prevention_boundary",
+          "id",
+          "change_reason"
+        ],
+        "title": "ControlCreate",
+        "type": "object"
+      },
+      "ControlRevisionUpdate": {
+        "additionalProperties": false,
+        "properties": {
+          "applicability_criteria": {
+            "maxLength": 4000,
+            "minLength": 1,
+            "title": "Applicability Criteria",
+            "type": "string"
+          },
+          "change_reason": {
+            "maxLength": 4000,
+            "minLength": 1,
+            "title": "Change Reason",
+            "type": "string"
+          },
+          "description": {
+            "maxLength": 4000,
+            "minLength": 1,
+            "title": "Description",
+            "type": "string"
+          },
+          "engineering_owner": {
+            "maxLength": 256,
+            "minLength": 1,
+            "title": "Engineering Owner",
+            "type": "string"
+          },
+          "exception_eligible": {
+            "title": "Exception Eligible",
+            "type": "boolean"
+          },
+          "expected_lock_version": {
+            "title": "Expected Lock Version",
+            "type": "integer"
+          },
+          "framework_refs": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 30,
+            "title": "Framework Refs",
+            "type": "array"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 30,
+            "title": "Limitations",
+            "type": "array"
+          },
+          "name": {
+            "maxLength": 256,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "prevention_boundary": {
+            "maxLength": 4000,
+            "minLength": 1,
+            "title": "Prevention Boundary",
+            "type": "string"
+          },
+          "providers": {
+            "items": {
+              "enum": [
+                "azure",
+                "aws"
+              ],
+              "type": "string"
+            },
+            "maxItems": 2,
+            "minItems": 1,
+            "title": "Providers",
+            "type": "array"
+          },
+          "rationale": {
+            "maxLength": 4000,
+            "minLength": 1,
+            "title": "Rationale",
+            "type": "string"
+          },
+          "resource_types": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 20,
+            "minItems": 1,
+            "title": "Resource Types",
+            "type": "array"
+          },
+          "security_objective": {
+            "maxLength": 4000,
+            "minLength": 1,
+            "title": "Security Objective",
+            "type": "string"
+          },
+          "security_owner": {
+            "maxLength": 256,
+            "minLength": 1,
+            "title": "Security Owner",
+            "type": "string"
+          },
+          "severity": {
+            "enum": [
+              "CRITICAL",
+              "HIGH",
+              "MEDIUM",
+              "LOW"
+            ],
+            "title": "Severity",
+            "type": "string"
+          },
+          "source_evidence": {
+            "items": {
+              "$ref": "#/components/schemas/EvidenceItem"
+            },
+            "maxItems": 50,
+            "title": "Source Evidence",
+            "type": "array"
+          }
+        },
+        "required": [
+          "name",
+          "description",
+          "security_objective",
+          "rationale",
+          "severity",
+          "providers",
+          "resource_types",
+          "applicability_criteria",
+          "security_owner",
+          "engineering_owner",
+          "exception_eligible",
+          "prevention_boundary",
+          "change_reason",
+          "expected_lock_version"
+        ],
+        "title": "ControlRevisionUpdate",
+        "type": "object"
+      },
+      "DevLogin": {
+        "additionalProperties": false,
+        "properties": {
+          "username": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Username",
+            "type": "string"
+          }
+        },
+        "required": [
+          "username"
+        ],
+        "title": "DevLogin",
+        "type": "object"
+      },
+      "EvidenceItem": {
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "enum": [
+              "INCIDENT",
+              "FINDING",
+              "AUDIT",
+              "THREAT_INTEL",
+              "WIZ_ISSUE",
+              "OTHER"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "reference": {
+            "maxLength": 512,
+            "minLength": 1,
+            "title": "Reference",
+            "type": "string"
+          },
+          "summary": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Summary",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "reference",
+          "summary"
+        ],
+        "title": "EvidenceItem",
+        "type": "object"
+      },
+      "ExceptionCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "application": {
+            "maxLength": 256,
+            "minLength": 1,
+            "title": "Application",
+            "type": "string"
+          },
+          "business_justification": {
+            "maxLength": 4000,
+            "minLength": 20,
+            "title": "Business Justification",
+            "type": "string"
+          },
+          "compensating_controls": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 20,
+            "minItems": 1,
+            "title": "Compensating Controls",
+            "type": "array"
+          },
+          "control_id": {
+            "maxLength": 256,
+            "minLength": 1,
+            "title": "Control Id",
+            "type": "string"
+          },
+          "expires_at": {
+            "format": "date-time",
+            "title": "Expires At",
+            "type": "string"
+          },
+          "granularity": {
+            "enum": [
+              "RESOURCE",
+              "SCOPE",
+              "PRINCIPAL"
+            ],
+            "title": "Granularity",
+            "type": "string"
+          },
+          "implementation_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Implementation Id"
+          },
+          "principal_patterns": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 10,
+            "title": "Principal Patterns",
+            "type": "array"
+          },
+          "resource_ids": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 50,
+            "title": "Resource Ids",
+            "type": "array"
+          },
+          "risk_owner": {
+            "maxLength": 256,
+            "minLength": 1,
+            "title": "Risk Owner",
+            "type": "string"
+          },
+          "scope_id": {
+            "maxLength": 256,
+            "minLength": 1,
+            "title": "Scope Id",
+            "type": "string"
+          },
+          "team": {
+            "maxLength": 256,
+            "minLength": 1,
+            "title": "Team",
+            "type": "string"
+          },
+          "technical_justification": {
+            "maxLength": 4000,
+            "minLength": 20,
+            "title": "Technical Justification",
+            "type": "string"
+          },
+          "valid_from": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Valid From"
+          },
+          "work_ref": {
+            "anyOf": [
+              {
+                "maxLength": 256,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Work Ref"
+          }
+        },
+        "required": [
+          "control_id",
+          "application",
+          "team",
+          "business_justification",
+          "technical_justification",
+          "scope_id",
+          "granularity",
+          "risk_owner",
+          "compensating_controls",
+          "expires_at"
+        ],
+        "title": "ExceptionCreate",
+        "type": "object"
+      },
+      "ExceptionDecision": {
+        "additionalProperties": false,
+        "properties": {
+          "decision": {
+            "enum": [
+              "APPROVE",
+              "REJECT"
+            ],
+            "title": "Decision",
+            "type": "string"
+          },
+          "expected_lock_version": {
+            "title": "Expected Lock Version",
+            "type": "integer"
+          },
+          "rationale": {
+            "maxLength": 4000,
+            "minLength": 10,
+            "title": "Rationale",
+            "type": "string"
+          }
+        },
+        "required": [
+          "decision",
+          "rationale",
+          "expected_lock_version"
+        ],
+        "title": "ExceptionDecision",
+        "type": "object"
+      },
+      "ExceptionRenewal": {
+        "additionalProperties": false,
+        "properties": {
+          "business_justification": {
+            "maxLength": 4000,
+            "minLength": 20,
+            "title": "Business Justification",
+            "type": "string"
+          },
+          "compensating_controls": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 20,
+            "minItems": 1,
+            "title": "Compensating Controls",
+            "type": "array"
+          },
+          "expires_at": {
+            "format": "date-time",
+            "title": "Expires At",
+            "type": "string"
+          },
+          "technical_justification": {
+            "maxLength": 4000,
+            "minLength": 20,
+            "title": "Technical Justification",
+            "type": "string"
+          }
+        },
+        "required": [
+          "expires_at",
+          "business_justification",
+          "technical_justification",
+          "compensating_controls"
+        ],
+        "title": "ExceptionRenewal",
+        "type": "object"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "title": "Detail",
+            "type": "array"
+          }
+        },
+        "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "ImplementationCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "assignment_settings": {
+            "additionalProperties": true,
+            "title": "Assignment Settings",
+            "type": "object"
+          },
+          "change_reason": {
+            "maxLength": 4000,
+            "minLength": 1,
+            "title": "Change Reason",
+            "type": "string"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 30,
+            "title": "Limitations",
+            "type": "array"
+          },
+          "management": {
+            "default": "MANAGED_HERE",
+            "enum": [
+              "MANAGED_HERE",
+              "EXTERNALLY_MANAGED"
+            ],
+            "title": "Management",
+            "type": "string"
+          },
+          "mechanism_role": {
+            "enum": [
+              "PRIMARY_GUARDRAIL",
+              "BASELINE_PROTECTION",
+              "DETECTIVE_REFERENCE"
+            ],
+            "title": "Mechanism Role",
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 256,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "native_document": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Native Document"
+          },
+          "parameters": {
+            "additionalProperties": true,
+            "title": "Parameters",
+            "type": "object"
+          },
+          "pinned_version": {
+            "anyOf": [
+              {
+                "maxLength": 64,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pinned Version"
+          },
+          "policy_kind": {
+            "enum": [
+              "AZURE_POLICY_BUILTIN_ASSIGNMENT",
+              "AZURE_POLICY_CUSTOM_DEFINITION",
+              "AWS_SCP"
+            ],
+            "title": "Policy Kind",
+            "type": "string"
+          },
+          "prerequisites": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 30,
+            "title": "Prerequisites",
+            "type": "array"
+          },
+          "provider": {
+            "enum": [
+              "azure",
+              "aws"
+            ],
+            "title": "Provider",
+            "type": "string"
+          },
+          "source_kind": {
+            "enum": [
+              "BUILT_IN",
+              "CUSTOM_TEMPLATE",
+              "CUSTOM",
+              "REPOSITORY"
+            ],
+            "title": "Source Kind",
+            "type": "string"
+          },
+          "source_ref": {
+            "maxLength": 512,
+            "minLength": 1,
+            "title": "Source Ref",
+            "type": "string"
+          }
+        },
+        "required": [
+          "policy_kind",
+          "source_kind",
+          "source_ref",
+          "provider",
+          "name",
+          "mechanism_role",
+          "change_reason"
+        ],
+        "title": "ImplementationCreate",
+        "type": "object"
+      },
+      "ImplementationRevisionCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "assignment_settings": {
+            "additionalProperties": true,
+            "title": "Assignment Settings",
+            "type": "object"
+          },
+          "change_reason": {
+            "maxLength": 4000,
+            "minLength": 1,
+            "title": "Change Reason",
+            "type": "string"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 30,
+            "title": "Limitations",
+            "type": "array"
+          },
+          "native_document": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Native Document"
+          },
+          "parameters": {
+            "additionalProperties": true,
+            "title": "Parameters",
+            "type": "object"
+          },
+          "pinned_version": {
+            "anyOf": [
+              {
+                "maxLength": 64,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pinned Version"
+          },
+          "policy_kind": {
+            "enum": [
+              "AZURE_POLICY_BUILTIN_ASSIGNMENT",
+              "AZURE_POLICY_CUSTOM_DEFINITION",
+              "AWS_SCP"
+            ],
+            "title": "Policy Kind",
+            "type": "string"
+          },
+          "prerequisites": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 30,
+            "title": "Prerequisites",
+            "type": "array"
+          },
+          "source_kind": {
+            "enum": [
+              "BUILT_IN",
+              "CUSTOM_TEMPLATE",
+              "CUSTOM",
+              "REPOSITORY"
+            ],
+            "title": "Source Kind",
+            "type": "string"
+          },
+          "source_ref": {
+            "maxLength": 512,
+            "minLength": 1,
+            "title": "Source Ref",
+            "type": "string"
+          }
+        },
+        "required": [
+          "policy_kind",
+          "source_kind",
+          "source_ref",
+          "change_reason"
+        ],
+        "title": "ImplementationRevisionCreate",
+        "type": "object"
+      },
+      "ImplementationRevisionUpdate": {
+        "additionalProperties": false,
+        "properties": {
+          "assignment_settings": {
+            "additionalProperties": true,
+            "title": "Assignment Settings",
+            "type": "object"
+          },
+          "change_reason": {
+            "maxLength": 4000,
+            "minLength": 1,
+            "title": "Change Reason",
+            "type": "string"
+          },
+          "expected_lock_version": {
+            "title": "Expected Lock Version",
+            "type": "integer"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 30,
+            "title": "Limitations",
+            "type": "array"
+          },
+          "native_document": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Native Document"
+          },
+          "parameters": {
+            "additionalProperties": true,
+            "title": "Parameters",
+            "type": "object"
+          },
+          "pinned_version": {
+            "anyOf": [
+              {
+                "maxLength": 64,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pinned Version"
+          },
+          "policy_kind": {
+            "enum": [
+              "AZURE_POLICY_BUILTIN_ASSIGNMENT",
+              "AZURE_POLICY_CUSTOM_DEFINITION",
+              "AWS_SCP"
+            ],
+            "title": "Policy Kind",
+            "type": "string"
+          },
+          "prerequisites": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 30,
+            "title": "Prerequisites",
+            "type": "array"
+          },
+          "source_kind": {
+            "enum": [
+              "BUILT_IN",
+              "CUSTOM_TEMPLATE",
+              "CUSTOM",
+              "REPOSITORY"
+            ],
+            "title": "Source Kind",
+            "type": "string"
+          },
+          "source_ref": {
+            "maxLength": 512,
+            "minLength": 1,
+            "title": "Source Ref",
+            "type": "string"
+          }
+        },
+        "required": [
+          "policy_kind",
+          "source_kind",
+          "source_ref",
+          "change_reason",
+          "expected_lock_version"
+        ],
+        "title": "ImplementationRevisionUpdate",
+        "type": "object"
+      },
+      "LockedCommand": {
+        "additionalProperties": false,
+        "properties": {
+          "expected_lock_version": {
+            "title": "Expected Lock Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "expected_lock_version"
+        ],
+        "title": "LockedCommand",
+        "type": "object"
+      },
+      "MockObservation": {
+        "additionalProperties": false,
+        "properties": {
+          "delivery_target_id": {
+            "maxLength": 256,
+            "minLength": 1,
+            "title": "Delivery Target Id",
+            "type": "string"
+          },
+          "observed_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Observed At"
+          },
+          "scenario": {
+            "enum": [
+              "MATCH",
+              "DRIFT",
+              "MISSING"
+            ],
+            "title": "Scenario",
+            "type": "string"
+          }
+        },
+        "required": [
+          "delivery_target_id",
+          "scenario"
+        ],
+        "title": "MockObservation",
+        "type": "object"
+      },
+      "MockPipelineRun": {
+        "additionalProperties": false,
+        "properties": {
+          "bundle_id": {
+            "maxLength": 256,
+            "minLength": 1,
+            "title": "Bundle Id",
+            "type": "string"
+          },
+          "ring": {
+            "enum": [
+              "OBSERVATION",
+              "PILOT",
+              "LIMITED",
+              "BROAD"
+            ],
+            "title": "Ring",
+            "type": "string"
+          },
+          "scenario": {
+            "enum": [
+              "SUCCESS",
+              "FAILURE",
+              "STALE",
+              "MISMATCH"
+            ],
+            "title": "Scenario",
+            "type": "string"
+          }
+        },
+        "required": [
+          "bundle_id",
+          "ring",
+          "scenario"
+        ],
+        "title": "MockPipelineRun",
+        "type": "object"
+      },
+      "NewRevision": {
+        "additionalProperties": false,
+        "properties": {
+          "change_reason": {
+            "maxLength": 4000,
+            "minLength": 1,
+            "title": "Change Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "change_reason"
+        ],
+        "title": "NewRevision",
+        "type": "object"
+      },
+      "PackageCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "through_stage": {
+            "enum": [
+              "OBSERVATION",
+              "PILOT",
+              "LIMITED",
+              "BROAD"
+            ],
+            "title": "Through Stage",
+            "type": "string"
+          }
+        },
+        "required": [
+          "through_stage"
+        ],
+        "title": "PackageCreate",
+        "type": "object"
+      },
+      "PackageDecision": {
+        "additionalProperties": false,
+        "properties": {
+          "decision": {
+            "enum": [
+              "APPROVE",
+              "REJECT"
+            ],
+            "title": "Decision",
+            "type": "string"
+          },
+          "expected_digest": {
+            "maxLength": 80,
+            "minLength": 10,
+            "title": "Expected Digest",
+            "type": "string"
+          },
+          "rationale": {
+            "maxLength": 4000,
+            "minLength": 10,
+            "title": "Rationale",
+            "type": "string"
+          },
+          "role": {
+            "enum": [
+              "SECURITY_APPROVER",
+              "CLOUD_ENGINEER"
+            ],
+            "title": "Role",
+            "type": "string"
+          }
+        },
+        "required": [
+          "decision",
+          "role",
+          "expected_digest",
+          "rationale"
+        ],
+        "title": "PackageDecision",
+        "type": "object"
+      },
+      "PlanCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "control_id": {
+            "maxLength": 256,
+            "minLength": 1,
+            "title": "Control Id",
+            "type": "string"
+          },
+          "deployment_instructions": {
+            "maxLength": 4000,
+            "minLength": 1,
+            "title": "Deployment Instructions",
+            "type": "string"
+          },
+          "implementation_revision_id": {
+            "maxLength": 256,
+            "minLength": 1,
+            "title": "Implementation Revision Id",
+            "type": "string"
+          },
+          "pause_criteria": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 20,
+            "minItems": 1,
+            "title": "Pause Criteria",
+            "type": "array"
+          },
+          "prerequisite_changes": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "maxItems": 30,
+            "title": "Prerequisite Changes",
+            "type": "array"
+          },
+          "rings": {
+            "items": {
+              "$ref": "#/components/schemas/RingSpec"
+            },
+            "maxItems": 4,
+            "minItems": 1,
+            "title": "Rings",
+            "type": "array"
+          },
+          "rollback_plan": {
+            "$ref": "#/components/schemas/RollbackPlan"
+          },
+          "target_scope_id": {
+            "maxLength": 256,
+            "minLength": 1,
+            "title": "Target Scope Id",
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 256,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "implementation_revision_id",
+          "target_scope_id",
+          "rings",
+          "pause_criteria",
+          "rollback_plan",
+          "deployment_instructions",
+          "control_id"
+        ],
+        "title": "PlanCreate",
+        "type": "object"
+      },
+      "PlanStateCommand": {
+        "additionalProperties": false,
+        "properties": {
+          "expected_lock_version": {
+            "title": "Expected Lock Version",
+            "type": "integer"
+          },
+          "reason": {
+            "maxLength": 4000,
+            "minLength": 1,
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "reason",
+          "expected_lock_version"
+        ],
+        "title": "PlanStateCommand",
+        "type": "object"
+      },
+      "PlanUpdate": {
+        "additionalProperties": false,
+        "properties": {
+          "deployment_instructions": {
+            "maxLength": 4000,
+            "minLength": 1,
+            "title": "Deployment Instructions",
+            "type": "string"
+          },
+          "expected_lock_version": {
+            "title": "Expected Lock Version",
+            "type": "integer"
+          },
+          "implementation_revision_id": {
+            "maxLength": 256,
+            "minLength": 1,
+            "title": "Implementation Revision Id",
+            "type": "string"
+          },
+          "pause_criteria": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 20,
+            "minItems": 1,
+            "title": "Pause Criteria",
+            "type": "array"
+          },
+          "prerequisite_changes": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "maxItems": 30,
+            "title": "Prerequisite Changes",
+            "type": "array"
+          },
+          "rings": {
+            "items": {
+              "$ref": "#/components/schemas/RingSpec"
+            },
+            "maxItems": 4,
+            "minItems": 1,
+            "title": "Rings",
+            "type": "array"
+          },
+          "rollback_plan": {
+            "$ref": "#/components/schemas/RollbackPlan"
+          },
+          "target_scope_id": {
+            "maxLength": 256,
+            "minLength": 1,
+            "title": "Target Scope Id",
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 256,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "implementation_revision_id",
+          "target_scope_id",
+          "rings",
+          "pause_criteria",
+          "rollback_plan",
+          "deployment_instructions",
+          "expected_lock_version"
+        ],
+        "title": "PlanUpdate",
+        "type": "object"
+      },
+      "ReadinessEvidenceCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "application": {
+            "maxLength": 256,
+            "minLength": 1,
+            "title": "Application",
+            "type": "string"
+          },
+          "collected_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Collected At"
+          },
+          "control_id": {
+            "maxLength": 256,
+            "minLength": 1,
+            "title": "Control Id",
+            "type": "string"
+          },
+          "evidence_ref": {
+            "anyOf": [
+              {
+                "maxLength": 512,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Evidence Ref"
+          },
+          "prerequisite": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Prerequisite",
+            "type": "string"
+          },
+          "scope_id": {
+            "maxLength": 256,
+            "minLength": 1,
+            "title": "Scope Id",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "SATISFIED",
+              "NOT_SATISFIED",
+              "UNKNOWN"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "summary": {
+            "maxLength": 4000,
+            "minLength": 1,
+            "title": "Summary",
+            "type": "string"
+          }
+        },
+        "required": [
+          "control_id",
+          "application",
+          "scope_id",
+          "prerequisite",
+          "status",
+          "summary"
+        ],
+        "title": "ReadinessEvidenceCreate",
+        "type": "object"
+      },
+      "ReasonCommand": {
+        "additionalProperties": false,
+        "properties": {
+          "reason": {
+            "maxLength": 4000,
+            "minLength": 1,
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "reason"
+        ],
+        "title": "ReasonCommand",
+        "type": "object"
+      },
+      "ReceiptPayload": {
+        "additionalProperties": false,
+        "properties": {
+          "applied_native_identities": {
+            "items": {
+              "$ref": "#/components/schemas/AppliedIdentity"
+            },
+            "maxItems": 50,
+            "title": "Applied Native Identities",
+            "type": "array"
+          },
+          "bundle_digest": {
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Bundle Digest",
+            "type": "string"
+          },
+          "completed_at": {
+            "format": "date-time",
+            "title": "Completed At",
+            "type": "string"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "maxLength": 2000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "pipeline_run_ref": {
+            "maxLength": 256,
+            "minLength": 1,
+            "title": "Pipeline Run Ref",
+            "type": "string"
+          },
+          "provenance": {
+            "enum": [
+              "MOCK",
+              "LIVE"
+            ],
+            "title": "Provenance",
+            "type": "string"
+          },
+          "receipt_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Receipt Id",
+            "type": "string"
+          },
+          "result": {
+            "enum": [
+              "ACCEPTED",
+              "APPLIED",
+              "FAILED"
+            ],
+            "title": "Result",
+            "type": "string"
+          },
+          "ring": {
+            "enum": [
+              "OBSERVATION",
+              "PILOT",
+              "LIMITED",
+              "BROAD"
+            ],
+            "title": "Ring",
+            "type": "string"
+          },
+          "started_at": {
+            "format": "date-time",
+            "title": "Started At",
+            "type": "string"
+          },
+          "target_scope_native_id": {
+            "maxLength": 512,
+            "minLength": 1,
+            "title": "Target Scope Native Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "receipt_id",
+          "provenance",
+          "bundle_digest",
+          "ring",
+          "target_scope_native_id",
+          "pipeline_run_ref",
+          "result",
+          "started_at",
+          "completed_at"
+        ],
+        "title": "ReceiptPayload",
+        "type": "object"
+      },
+      "RingSpec": {
+        "additionalProperties": false,
+        "properties": {
+          "scope_ids": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 50,
+            "minItems": 1,
+            "title": "Scope Ids",
+            "type": "array"
+          },
+          "settings": {
+            "additionalProperties": true,
+            "title": "Settings",
+            "type": "object"
+          },
+          "stage": {
+            "enum": [
+              "OBSERVATION",
+              "PILOT",
+              "LIMITED",
+              "BROAD"
+            ],
+            "title": "Stage",
+            "type": "string"
+          }
+        },
+        "required": [
+          "stage",
+          "scope_ids",
+          "settings"
+        ],
+        "title": "RingSpec",
+        "type": "object"
+      },
+      "RoleGrant": {
+        "additionalProperties": false,
+        "properties": {
+          "role": {
+            "enum": [
+              "VIEWER",
+              "CONTROL_ENGINEER",
+              "EXCEPTION_REQUESTER",
+              "SECURITY_APPROVER",
+              "CLOUD_ENGINEER",
+              "ADMIN"
+            ],
+            "title": "Role",
+            "type": "string"
+          },
+          "scope_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scope Id"
+          },
+          "user_id": {
+            "maxLength": 256,
+            "minLength": 1,
+            "title": "User Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "user_id",
+          "role"
+        ],
+        "title": "RoleGrant",
+        "type": "object"
+      },
+      "RollbackPlan": {
+        "additionalProperties": false,
+        "properties": {
+          "emergency_path": {
+            "maxLength": 4000,
+            "minLength": 1,
+            "title": "Emergency Path",
+            "type": "string"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 30,
+            "minItems": 1,
+            "title": "Limitations",
+            "type": "array"
+          },
+          "prior_known_good": {
+            "maxLength": 4000,
+            "minLength": 1,
+            "title": "Prior Known Good",
+            "type": "string"
+          },
+          "steps": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 30,
+            "minItems": 1,
+            "title": "Steps",
+            "type": "array"
+          }
+        },
+        "required": [
+          "prior_known_good",
+          "steps",
+          "limitations",
+          "emergency_path"
+        ],
+        "title": "RollbackPlan",
+        "type": "object"
+      },
+      "SettingUpdate": {
+        "additionalProperties": false,
+        "properties": {
+          "expected_lock_version": {
+            "title": "Expected Lock Version",
+            "type": "integer"
+          },
+          "value": {
+            "additionalProperties": true,
+            "title": "Value",
+            "type": "object"
+          }
+        },
+        "required": [
+          "value",
+          "expected_lock_version"
+        ],
+        "title": "SettingUpdate",
+        "type": "object"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Location",
+            "type": "array"
+          },
+          "msg": {
+            "title": "Message",
+            "type": "string"
+          },
+          "type": {
+            "title": "Error Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError",
+        "type": "object"
+      },
+      "WorkReferenceCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "detail": {
+            "default": "",
+            "maxLength": 4000,
+            "title": "Detail",
+            "type": "string"
+          },
+          "external_ref": {
+            "anyOf": [
+              {
+                "maxLength": 256,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "External Ref"
+          },
+          "external_system": {
+            "anyOf": [
+              {
+                "maxLength": 64,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "External System"
+          },
+          "kind": {
+            "enum": [
+              "REMEDIATION",
+              "READINESS",
+              "EXEMPTION_REMOVAL",
+              "EXEMPTION_CLEANUP",
+              "RENEWAL_REVIEW",
+              "DRIFT",
+              "VERIFICATION_STALE",
+              "DELIVERY_FAILURE"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "owner_team": {
+            "maxLength": 256,
+            "minLength": 1,
+            "title": "Owner Team",
+            "type": "string"
+          },
+          "related_id": {
+            "maxLength": 256,
+            "minLength": 1,
+            "title": "Related Id",
+            "type": "string"
+          },
+          "related_type": {
+            "maxLength": 256,
+            "minLength": 1,
+            "title": "Related Type",
+            "type": "string"
+          },
+          "scope_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scope Id"
+          },
+          "title": {
+            "maxLength": 512,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "owner_team",
+          "title",
+          "related_type",
+          "related_id"
+        ],
+        "title": "WorkReferenceCreate",
+        "type": "object"
+      }
+    }
+  },
+  "info": {
+    "description": "Security intent -> governed, verifiable preventive controls. Fixture data only; no cloud mutations. Delivery is a local GitOps handoff bundle and a clearly labelled mock pipeline.",
+    "title": "Cloud Security Control Engineering Platform (local MVP)",
+    "version": "0.1.0"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/api/health": {
+      "get": {
+        "operationId": "health_api_health_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Health",
+        "tags": [
+          "health"
+        ]
+      }
+    },
+    "/api/v1/admin/reconcile": {
+      "post": {
+        "operationId": "run_reconcile_api_v1_admin_reconcile_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Run Reconcile",
+        "tags": [
+          "admin",
+          "audit",
+          "dashboard"
+        ]
+      }
+    },
+    "/api/v1/admin/role-assignments": {
+      "post": {
+        "operationId": "grant_role_api_v1_admin_role_assignments_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RoleGrant"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Grant Role",
+        "tags": [
+          "admin",
+          "audit",
+          "dashboard"
+        ]
+      }
+    },
+    "/api/v1/admin/role-assignments/{assignment_id}": {
+      "delete": {
+        "operationId": "revoke_role_api_v1_admin_role_assignments__assignment_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "assignment_id",
+            "required": true,
+            "schema": {
+              "title": "Assignment Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Revoke Role",
+        "tags": [
+          "admin",
+          "audit",
+          "dashboard"
+        ]
+      }
+    },
+    "/api/v1/admin/settings": {
+      "get": {
+        "operationId": "get_settings_api_v1_admin_settings_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Settings",
+        "tags": [
+          "admin",
+          "audit",
+          "dashboard"
+        ]
+      }
+    },
+    "/api/v1/admin/settings/{key}": {
+      "put": {
+        "operationId": "put_setting_api_v1_admin_settings__key__put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "key",
+            "required": true,
+            "schema": {
+              "title": "Key",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SettingUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Put Setting",
+        "tags": [
+          "admin",
+          "audit",
+          "dashboard"
+        ]
+      }
+    },
+    "/api/v1/admin/users": {
+      "get": {
+        "operationId": "list_users_api_v1_admin_users_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "List Users",
+        "tags": [
+          "admin",
+          "audit",
+          "dashboard"
+        ]
+      }
+    },
+    "/api/v1/assessments": {
+      "get": {
+        "operationId": "list_assessments_api_v1_assessments_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "control_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Control Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "maximum": 100000,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Assessments",
+        "tags": [
+          "inventory",
+          "assessments"
+        ]
+      },
+      "post": {
+        "operationId": "run_assessment_api_v1_assessments_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssessmentCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Run Assessment",
+        "tags": [
+          "inventory",
+          "assessments"
+        ]
+      }
+    },
+    "/api/v1/assessments/{run_id}": {
+      "get": {
+        "operationId": "get_assessment_api_v1_assessments__run_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "title": "Run Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Assessment",
+        "tags": [
+          "inventory",
+          "assessments"
+        ]
+      }
+    },
+    "/api/v1/assessments/{run_id}/results": {
+      "get": {
+        "operationId": "get_assessment_results_api_v1_assessments__run_id__results_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "title": "Run Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "subject_kind",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "pattern": "^(RESOURCE|REQUEST)$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Subject Kind"
+            }
+          },
+          {
+            "in": "query",
+            "name": "configuration_result",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Configuration Result"
+            }
+          },
+          {
+            "in": "query",
+            "name": "exception_disposition",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Exception Disposition"
+            }
+          },
+          {
+            "in": "query",
+            "name": "request_impact",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Request Impact"
+            }
+          },
+          {
+            "in": "query",
+            "name": "readiness",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Readiness"
+            }
+          },
+          {
+            "in": "query",
+            "name": "applicability",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Applicability"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "maximum": 100000,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Assessment Results",
+        "tags": [
+          "inventory",
+          "assessments"
+        ]
+      }
+    },
+    "/api/v1/assessments/{run_id}/route-blockers": {
+      "post": {
+        "operationId": "route_blockers_api_v1_assessments__run_id__route_blockers_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "title": "Run Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Route Blockers",
+        "tags": [
+          "inventory",
+          "assessments"
+        ]
+      }
+    },
+    "/api/v1/audit": {
+      "get": {
+        "operationId": "list_audit_api_v1_audit_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "object_type",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Object Type"
+            }
+          },
+          {
+            "in": "query",
+            "name": "object_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Object Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "control_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Control Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "correlation_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Correlation Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "action",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Action"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "maximum": 100000,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Audit",
+        "tags": [
+          "admin",
+          "audit",
+          "dashboard"
+        ]
+      }
+    },
+    "/api/v1/auth/demo-users": {
+      "get": {
+        "operationId": "demo_users_api_v1_auth_demo_users_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Demo Users",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/dev-login": {
+      "post": {
+        "operationId": "dev_login_api_v1_auth_dev_login_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DevLogin"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Dev Login",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/me": {
+      "get": {
+        "operationId": "me_api_v1_auth_me_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Me",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/bindings": {
+      "get": {
+        "operationId": "list_bindings_api_v1_bindings_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "provider",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Provider"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Bindings",
+        "tags": [
+          "inventory",
+          "assessments"
+        ]
+      }
+    },
+    "/api/v1/bindings/{binding_id}/mock-observation": {
+      "post": {
+        "operationId": "binding_observation_api_v1_bindings__binding_id__mock_observation_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "binding_id",
+            "required": true,
+            "schema": {
+              "title": "Binding Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BindingObservation"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Binding Observation",
+        "tags": [
+          "rollouts",
+          "handoffs"
+        ]
+      }
+    },
+    "/api/v1/change-packages/{package_id}": {
+      "get": {
+        "operationId": "get_package_api_v1_change_packages__package_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "package_id",
+            "required": true,
+            "schema": {
+              "title": "Package Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Package",
+        "tags": [
+          "rollouts",
+          "handoffs"
+        ]
+      }
+    },
+    "/api/v1/change-packages/{package_id}/decisions": {
+      "post": {
+        "operationId": "decide_api_v1_change_packages__package_id__decisions_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "package_id",
+            "required": true,
+            "schema": {
+              "title": "Package Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PackageDecision"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Decide",
+        "tags": [
+          "rollouts",
+          "handoffs"
+        ]
+      }
+    },
+    "/api/v1/change-packages/{package_id}/draft-export": {
+      "post": {
+        "operationId": "draft_export_api_v1_change_packages__package_id__draft_export_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "package_id",
+            "required": true,
+            "schema": {
+              "title": "Package Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Draft Export",
+        "tags": [
+          "rollouts",
+          "handoffs"
+        ]
+      }
+    },
+    "/api/v1/change-packages/{package_id}/export": {
+      "post": {
+        "operationId": "export_api_v1_change_packages__package_id__export_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "package_id",
+            "required": true,
+            "schema": {
+              "title": "Package Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Export",
+        "tags": [
+          "rollouts",
+          "handoffs"
+        ]
+      }
+    },
+    "/api/v1/change-packages/{package_id}/gates": {
+      "get": {
+        "operationId": "get_gates_api_v1_change_packages__package_id__gates_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "package_id",
+            "required": true,
+            "schema": {
+              "title": "Package Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Gates",
+        "tags": [
+          "rollouts",
+          "handoffs"
+        ]
+      }
+    },
+    "/api/v1/control-revisions/{revision_id}": {
+      "delete": {
+        "operationId": "delete_control_revision_api_v1_control_revisions__revision_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "revision_id",
+            "required": true,
+            "schema": {
+              "title": "Revision Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete Control Revision",
+        "tags": [
+          "controls"
+        ]
+      },
+      "put": {
+        "operationId": "update_control_revision_api_v1_control_revisions__revision_id__put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "revision_id",
+            "required": true,
+            "schema": {
+              "title": "Revision Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ControlRevisionUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Control Revision",
+        "tags": [
+          "controls"
+        ]
+      }
+    },
+    "/api/v1/control-revisions/{revision_id}/submit": {
+      "post": {
+        "operationId": "submit_control_revision_api_v1_control_revisions__revision_id__submit_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "revision_id",
+            "required": true,
+            "schema": {
+              "title": "Revision Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LockedCommand"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Submit Control Revision",
+        "tags": [
+          "controls"
+        ]
+      }
+    },
+    "/api/v1/controls": {
+      "get": {
+        "operationId": "list_controls_api_v1_controls_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "maximum": 100000,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Controls",
+        "tags": [
+          "controls"
+        ]
+      },
+      "post": {
+        "operationId": "create_control_api_v1_controls_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ControlCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Control",
+        "tags": [
+          "controls"
+        ]
+      }
+    },
+    "/api/v1/controls/{control_id}": {
+      "get": {
+        "operationId": "get_control_api_v1_controls__control_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "control_id",
+            "required": true,
+            "schema": {
+              "title": "Control Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Control",
+        "tags": [
+          "controls"
+        ]
+      }
+    },
+    "/api/v1/controls/{control_id}/implementations": {
+      "post": {
+        "operationId": "create_implementation_api_v1_controls__control_id__implementations_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "control_id",
+            "required": true,
+            "schema": {
+              "title": "Control Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ImplementationCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Implementation",
+        "tags": [
+          "controls"
+        ]
+      }
+    },
+    "/api/v1/controls/{control_id}/retire": {
+      "post": {
+        "operationId": "retire_control_api_v1_controls__control_id__retire_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "control_id",
+            "required": true,
+            "schema": {
+              "title": "Control Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReasonCommand"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Retire Control",
+        "tags": [
+          "controls"
+        ]
+      }
+    },
+    "/api/v1/controls/{control_id}/revisions": {
+      "post": {
+        "operationId": "new_control_revision_api_v1_controls__control_id__revisions_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "control_id",
+            "required": true,
+            "schema": {
+              "title": "Control Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewRevision"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "New Control Revision",
+        "tags": [
+          "controls"
+        ]
+      }
+    },
+    "/api/v1/dashboard/metrics": {
+      "get": {
+        "operationId": "metrics_api_v1_dashboard_metrics_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Metrics",
+        "tags": [
+          "admin",
+          "audit",
+          "dashboard"
+        ]
+      }
+    },
+    "/api/v1/deliveries": {
+      "get": {
+        "operationId": "list_deliveries_api_v1_deliveries_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "control_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Control Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "state",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "State"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Deliveries",
+        "tags": [
+          "rollouts",
+          "handoffs"
+        ]
+      }
+    },
+    "/api/v1/exceptions": {
+      "get": {
+        "operationId": "list_exceptions_api_v1_exceptions_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "control_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Control Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "effective_status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Effective Status"
+            }
+          },
+          {
+            "in": "query",
+            "name": "disposition",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Disposition"
+            }
+          },
+          {
+            "in": "query",
+            "name": "expiring",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Expiring",
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "native_cleanup_pending",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Native Cleanup Pending",
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "maximum": 100000,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Exceptions",
+        "tags": [
+          "exceptions"
+        ]
+      },
+      "post": {
+        "operationId": "request_exception_api_v1_exceptions_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExceptionCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Request Exception",
+        "tags": [
+          "exceptions"
+        ]
+      }
+    },
+    "/api/v1/exceptions/{exc_id}": {
+      "get": {
+        "operationId": "get_exception_api_v1_exceptions__exc_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "exc_id",
+            "required": true,
+            "schema": {
+              "title": "Exc Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Exception",
+        "tags": [
+          "exceptions"
+        ]
+      }
+    },
+    "/api/v1/exceptions/{exc_id}/decision": {
+      "post": {
+        "operationId": "decide_api_v1_exceptions__exc_id__decision_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "exc_id",
+            "required": true,
+            "schema": {
+              "title": "Exc Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExceptionDecision"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Decide",
+        "tags": [
+          "exceptions"
+        ]
+      }
+    },
+    "/api/v1/exceptions/{exc_id}/renew": {
+      "post": {
+        "operationId": "renew_api_v1_exceptions__exc_id__renew_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "exc_id",
+            "required": true,
+            "schema": {
+              "title": "Exc Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExceptionRenewal"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Renew",
+        "tags": [
+          "exceptions"
+        ]
+      }
+    },
+    "/api/v1/exceptions/{exc_id}/revoke": {
+      "post": {
+        "operationId": "revoke_api_v1_exceptions__exc_id__revoke_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "exc_id",
+            "required": true,
+            "schema": {
+              "title": "Exc Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlanStateCommand"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Revoke",
+        "tags": [
+          "exceptions"
+        ]
+      }
+    },
+    "/api/v1/exceptions/{exc_id}/start-review": {
+      "post": {
+        "operationId": "start_review_api_v1_exceptions__exc_id__start_review_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "exc_id",
+            "required": true,
+            "schema": {
+              "title": "Exc Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LockedCommand"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Start Review",
+        "tags": [
+          "exceptions"
+        ]
+      }
+    },
+    "/api/v1/handoff-bundles/{bundle_id}": {
+      "get": {
+        "operationId": "get_bundle_api_v1_handoff_bundles__bundle_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "bundle_id",
+            "required": true,
+            "schema": {
+              "title": "Bundle Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Bundle",
+        "tags": [
+          "rollouts",
+          "handoffs"
+        ]
+      }
+    },
+    "/api/v1/handoff-bundles/{bundle_id}/download": {
+      "get": {
+        "operationId": "download_bundle_api_v1_handoff_bundles__bundle_id__download_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "bundle_id",
+            "required": true,
+            "schema": {
+              "title": "Bundle Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Download Bundle",
+        "tags": [
+          "rollouts",
+          "handoffs"
+        ]
+      }
+    },
+    "/api/v1/implementation-revisions/{rev_id}": {
+      "delete": {
+        "operationId": "delete_implementation_revision_api_v1_implementation_revisions__rev_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "rev_id",
+            "required": true,
+            "schema": {
+              "title": "Rev Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete Implementation Revision",
+        "tags": [
+          "controls"
+        ]
+      },
+      "get": {
+        "operationId": "get_implementation_revision_api_v1_implementation_revisions__rev_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "rev_id",
+            "required": true,
+            "schema": {
+              "title": "Rev Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Implementation Revision",
+        "tags": [
+          "controls"
+        ]
+      },
+      "put": {
+        "operationId": "update_implementation_revision_api_v1_implementation_revisions__rev_id__put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "rev_id",
+            "required": true,
+            "schema": {
+              "title": "Rev Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ImplementationRevisionUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Implementation Revision",
+        "tags": [
+          "controls"
+        ]
+      }
+    },
+    "/api/v1/implementation-revisions/{rev_id}/submit": {
+      "post": {
+        "operationId": "submit_implementation_revision_api_v1_implementation_revisions__rev_id__submit_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "rev_id",
+            "required": true,
+            "schema": {
+              "title": "Rev Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LockedCommand"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Submit Implementation Revision",
+        "tags": [
+          "controls"
+        ]
+      }
+    },
+    "/api/v1/implementation-revisions/{rev_id}/validate": {
+      "post": {
+        "operationId": "validate_implementation_revision_api_v1_implementation_revisions__rev_id__validate_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "rev_id",
+            "required": true,
+            "schema": {
+              "title": "Rev Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Validate Implementation Revision",
+        "tags": [
+          "controls"
+        ]
+      }
+    },
+    "/api/v1/implementations/{impl_id}": {
+      "get": {
+        "operationId": "get_implementation_api_v1_implementations__impl_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "impl_id",
+            "required": true,
+            "schema": {
+              "title": "Impl Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Implementation",
+        "tags": [
+          "controls"
+        ]
+      }
+    },
+    "/api/v1/implementations/{impl_id}/revisions": {
+      "post": {
+        "operationId": "new_implementation_revision_api_v1_implementations__impl_id__revisions_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "impl_id",
+            "required": true,
+            "schema": {
+              "title": "Impl Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ImplementationRevisionCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "New Implementation Revision",
+        "tags": [
+          "controls"
+        ]
+      }
+    },
+    "/api/v1/inventory/snapshots": {
+      "get": {
+        "operationId": "list_snapshots_api_v1_inventory_snapshots_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "List Snapshots",
+        "tags": [
+          "inventory",
+          "assessments"
+        ]
+      }
+    },
+    "/api/v1/inventory/snapshots/{snapshot_id}/resources": {
+      "get": {
+        "operationId": "list_resources_api_v1_inventory_snapshots__snapshot_id__resources_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "snapshot_id",
+            "required": true,
+            "schema": {
+              "title": "Snapshot Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "resource_type",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Resource Type"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "maximum": 100000,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Resources",
+        "tags": [
+          "inventory",
+          "assessments"
+        ]
+      }
+    },
+    "/api/v1/mock-observations": {
+      "post": {
+        "operationId": "mock_observation_api_v1_mock_observations_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MockObservation"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Mock Observation",
+        "tags": [
+          "rollouts",
+          "handoffs"
+        ]
+      }
+    },
+    "/api/v1/mock-pipeline/runs": {
+      "post": {
+        "operationId": "mock_pipeline_api_v1_mock_pipeline_runs_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MockPipelineRun"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Mock Pipeline",
+        "tags": [
+          "rollouts",
+          "handoffs"
+        ]
+      }
+    },
+    "/api/v1/providers/capabilities": {
+      "get": {
+        "operationId": "capabilities_api_v1_providers_capabilities_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Capabilities",
+        "tags": [
+          "controls"
+        ]
+      }
+    },
+    "/api/v1/readiness-evidence": {
+      "get": {
+        "operationId": "list_evidence_api_v1_readiness_evidence_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "control_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Control Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Evidence",
+        "tags": [
+          "inventory",
+          "assessments"
+        ]
+      },
+      "post": {
+        "operationId": "create_evidence_api_v1_readiness_evidence_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReadinessEvidenceCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Evidence",
+        "tags": [
+          "inventory",
+          "assessments"
+        ]
+      }
+    },
+    "/api/v1/receipts": {
+      "post": {
+        "operationId": "ingest_receipt_api_v1_receipts_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReceiptPayload"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Ingest Receipt",
+        "tags": [
+          "rollouts",
+          "handoffs"
+        ]
+      }
+    },
+    "/api/v1/request-fixtures": {
+      "get": {
+        "operationId": "list_request_fixtures_api_v1_request_fixtures_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "List Request Fixtures",
+        "tags": [
+          "inventory",
+          "assessments"
+        ]
+      }
+    },
+    "/api/v1/rollout-plans": {
+      "get": {
+        "operationId": "list_plans_api_v1_rollout_plans_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "control_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Control Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Plans",
+        "tags": [
+          "rollouts",
+          "handoffs"
+        ]
+      },
+      "post": {
+        "operationId": "create_plan_api_v1_rollout_plans_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlanCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Plan",
+        "tags": [
+          "rollouts",
+          "handoffs"
+        ]
+      }
+    },
+    "/api/v1/rollout-plans/template": {
+      "get": {
+        "operationId": "plan_template_api_v1_rollout_plans_template_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "control_id",
+            "required": true,
+            "schema": {
+              "title": "Control Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "implementation_revision_id",
+            "required": true,
+            "schema": {
+              "title": "Implementation Revision Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Plan Template",
+        "tags": [
+          "rollouts",
+          "handoffs"
+        ]
+      }
+    },
+    "/api/v1/rollout-plans/{plan_id}": {
+      "get": {
+        "operationId": "get_plan_api_v1_rollout_plans__plan_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "plan_id",
+            "required": true,
+            "schema": {
+              "title": "Plan Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Plan",
+        "tags": [
+          "rollouts",
+          "handoffs"
+        ]
+      },
+      "put": {
+        "operationId": "update_plan_api_v1_rollout_plans__plan_id__put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "plan_id",
+            "required": true,
+            "schema": {
+              "title": "Plan Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlanUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Plan",
+        "tags": [
+          "rollouts",
+          "handoffs"
+        ]
+      }
+    },
+    "/api/v1/rollout-plans/{plan_id}/advance": {
+      "post": {
+        "operationId": "advance_api_v1_rollout_plans__plan_id__advance_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "plan_id",
+            "required": true,
+            "schema": {
+              "title": "Plan Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdvanceCommand"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Advance",
+        "tags": [
+          "rollouts",
+          "handoffs"
+        ]
+      }
+    },
+    "/api/v1/rollout-plans/{plan_id}/cancel": {
+      "post": {
+        "operationId": "cancel_api_v1_rollout_plans__plan_id__cancel_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "plan_id",
+            "required": true,
+            "schema": {
+              "title": "Plan Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlanStateCommand"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Cancel",
+        "tags": [
+          "rollouts",
+          "handoffs"
+        ]
+      }
+    },
+    "/api/v1/rollout-plans/{plan_id}/packages": {
+      "post": {
+        "operationId": "create_package_api_v1_rollout_plans__plan_id__packages_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "plan_id",
+            "required": true,
+            "schema": {
+              "title": "Plan Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PackageCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Package",
+        "tags": [
+          "rollouts",
+          "handoffs"
+        ]
+      }
+    },
+    "/api/v1/rollout-plans/{plan_id}/pause": {
+      "post": {
+        "operationId": "pause_api_v1_rollout_plans__plan_id__pause_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "plan_id",
+            "required": true,
+            "schema": {
+              "title": "Plan Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlanStateCommand"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Pause",
+        "tags": [
+          "rollouts",
+          "handoffs"
+        ]
+      }
+    },
+    "/api/v1/rollout-plans/{plan_id}/resume": {
+      "post": {
+        "operationId": "resume_api_v1_rollout_plans__plan_id__resume_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "plan_id",
+            "required": true,
+            "schema": {
+              "title": "Plan Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlanStateCommand"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Resume",
+        "tags": [
+          "rollouts",
+          "handoffs"
+        ]
+      }
+    },
+    "/api/v1/scopes": {
+      "get": {
+        "operationId": "list_scopes_api_v1_scopes_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "provider",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Provider"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Scopes",
+        "tags": [
+          "inventory",
+          "assessments"
+        ]
+      }
+    },
+    "/api/v1/scopes/{scope_id}": {
+      "get": {
+        "operationId": "get_scope_api_v1_scopes__scope_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "scope_id",
+            "required": true,
+            "schema": {
+              "title": "Scope Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Scope",
+        "tags": [
+          "inventory",
+          "assessments"
+        ]
+      }
+    },
+    "/api/v1/simulation": {
+      "get": {
+        "description": "Compatibility route. The feature is Impact Assessment; this states exactly what is evaluated.",
+        "operationId": "simulation_disclosure_api_v1_simulation_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Simulation Disclosure",
+        "tags": [
+          "inventory",
+          "assessments"
+        ]
+      }
+    },
+    "/api/v1/work-items": {
+      "get": {
+        "operationId": "list_work_api_v1_work_items_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "in": "query",
+            "name": "kind",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Kind"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "maximum": 100000,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Work",
+        "tags": [
+          "inventory",
+          "assessments"
+        ]
+      },
+      "post": {
+        "operationId": "create_work_api_v1_work_items_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WorkReferenceCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Work",
+        "tags": [
+          "inventory",
+          "assessments"
+        ]
+      }
+    },
+    "/api/v1/work-items/{work_id}/close": {
+      "post": {
+        "operationId": "close_work_api_v1_work_items__work_id__close_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "work_id",
+            "required": true,
+            "schema": {
+              "title": "Work Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Close Work",
+        "tags": [
+          "inventory",
+          "assessments"
+        ]
+      }
+    }
+  }
+}
